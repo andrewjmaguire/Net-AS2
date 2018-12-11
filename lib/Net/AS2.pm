@@ -101,7 +101,7 @@ use Sys::Hostname;
 
 my $crlf = "\x0d\x0a";
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 =head2 Constructor
 
