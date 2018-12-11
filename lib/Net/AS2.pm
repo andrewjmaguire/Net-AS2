@@ -1,6 +1,8 @@
 package Net::AS2;
+use 5.018;
 use strict;
 use warnings qw(all);
+no if $] >= 5.018, warnings => "experimental::smartmatch";
 
 =head1 NAME
 

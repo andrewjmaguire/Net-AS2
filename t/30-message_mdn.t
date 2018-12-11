@@ -1,8 +1,10 @@
 use Test::More tests => 33;
 
+use 5.018;
 use utf8;
 use strict;
 use warnings;
+no if $] >= 5.018, warnings => "experimental::smartmatch";
 
 use Encode;
 use_ok('Net::AS2');

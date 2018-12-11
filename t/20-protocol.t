@@ -1,8 +1,10 @@
 use Test::More tests => 19;
 
+use 5.018;
 use utf8;
 use strict;
 use warnings;
+no if $] >= 5.018, warnings => "experimental::smartmatch";
 
 use Encode;
 use HTTP::Response;
