@@ -147,7 +147,7 @@ I<Required.>
 Our corresponding certificate in PEM format.
 Please includes the C<-----BEGIN CERTIFICATE-----> and C<-----END CERTIFICATE-----> line.
 
-=item MyEncryptionKey, MySignatureKey
+=item MyEncryptionCertificate, MySignatureCertificate
 
 I<Optional.> 
 Different certificate could be used for encryption and signing. L<MyCertificate> will be used if not independently supplied.
@@ -413,6 +413,9 @@ sub decode_message
                 $content;
             $is_content_raw = 0;
         }
+        # OpenSSL (Crypt::SMIME) in Windows cannot handle binary content, 
+        # convert signature part to base64
+        $content = _pkcs7_base64($content);
         $content = eval { $self->{_smime_sign}->check($content); };
 
         return Net::AS2::Message->create_error_message(@new_prefix,
@@ -813,7 +816,7 @@ sub _pkcs7_base64
         my $p = $entity->parts(1);
         if (defined $p && $p->head &&
             $p->head->get('Content-type') =~ m{^application/(x-)?pkcs7-signature($|;)} &&
-            ($p->head->get('Content-transfer-encoding') // '') ne 'base64'
+            ($p->head->get('Content-transfer-encoding') // '')  !~ qr{^base64\r?$}
         ) {
             $p->head->replace('Content-transfer-encoding', 'base64');
             return $entity->stringify;
