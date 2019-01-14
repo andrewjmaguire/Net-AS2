@@ -78,7 +78,7 @@ In AS2, MDN can only be signed but not encrypted, some MIME headers
 are also exposed in the HTTP headers when sending. Use HTTPS if this 
 is a concerns.
 
-Encryption and Signature are done in PKCS7/SMIME favor. The certifacate
+Encryption and Signature are done in PKCS7/SMIME favor. The certificate
 are usually exchanged out of band before establishing communication.
 The certificates could be self-signed.
 
@@ -92,7 +92,7 @@ use Carp;
 use Crypt::SMIME;
 use LWP::UserAgent;
 use HTTP::Request;
-use Digest::SHA1;
+use Digest::SHA;
 use MIME::Base64;
 use MIME::Parser;
 use Encode;
@@ -177,13 +177,13 @@ Otherwise, encryption would be optional for receiving.
 
 =item Signature
 
-I<Optional.> 
-Signing alogrithm used in SMIME signing operation. Only C<sha1> is supported at this moment.
+I<Optional.>
+Signing alogrithm used in SMIME signing operation..
 
-If left undefined, signing is enabled and C<sha1> would be used. 
+If left undefined, signing is enabled and C<sha1> will be used.
 A false value must be specified to disable signature.
 
-If enabled, signature would also be required for receiving. 
+If enabled, signature would also be required for receiving.
 Otherwise, signature would be optional for receiving.
 
 Also, if enabled, signed MDN would be requested.
@@ -264,7 +264,7 @@ sub _validations
 
     $self->{Signature} = lc($self->{Signature} // 'sha1');
     croak sprintf("signature %s is not supported", $self->{Signature})
-        unless !$self->{Signature} || $self->{Signature} ~~ ['sha1'];
+        unless !$self->{Signature} || $self->{Signature} =~ qr{^sha-?(?:1|224|256|384|512)$};
 
     $self->{MyEncryptionKey} //= $self->{MyKey};
     $self->{MyEncryptionCertificate} //= $self->{MyCertificate};
@@ -305,6 +305,13 @@ sub _validations
         unless $self->{Timeout} =~ /^[0-9]+$/;
 
     $self->{UserAgent} //= "Perl AS2/$VERSION";
+
+    if (($self->{Signature} // '') =~ /^sha-?(\d+)/i) {
+        $self->{Digest} = Digest::SHA->new($1);
+    }
+    else {
+        $self->{Digest} = Digest::SHA->new(1);
+    }
 }
 
 =back
@@ -427,7 +434,7 @@ sub decode_message
             if $self->{Signature};
     }
 
-    my $mic = Digest::SHA1::sha1_base64($content) . '=';
+    my $mic = $self->_base64_digest($content);
 
     my $parser = new MIME::Parser;
     $parser->output_to_core(1);
@@ -441,7 +448,7 @@ sub decode_message
         unless defined $bh;
 
     $content = $bh->as_string;
-    return Net::AS2::Message->new(@new_prefix, $mic, $content);
+    return Net::AS2::Message->new(@new_prefix, $mic, $content, $self->{Signature});
 }
 
 =item $mdn = $as2->decode_mdn($headers, $content)
@@ -590,7 +597,7 @@ sub send_async_mdn
 
 =item ($mdn, $mic) = $as2->send($data, %MIMEHEADERS)
 
-Send a message to the partner. Returns a C<Net::AS2::MDN> object and calculated SHA-1 MIC.
+Send a message to the partner. Returns a C<Net::AS2::MDN> object and calculated SHA Digest MIC.
 
 The data should be encoded (or assumed to be UTF-8 encoded).
 
@@ -628,7 +635,7 @@ sub send
 
     $data = utf8::is_utf8($data) ? encode("utf8", $data) : $data;
     my $mic;
-    $mic = Digest::SHA1::sha1_base64($data) . '='
+    $mic = $self->_base64_digest($data)
         unless $self->{Signature} || $self->{Encryption};
 
     my $message_id = $opts{MessageId} // '';
@@ -650,7 +657,8 @@ sub _send_preprocess
     my ($self, $data, $message_id, $target_url, $pre_mic, $is_mdn, $should_mdn_signed) = @_;
     
     $data =~ s/(?:$crlf|\n)/$crlf/g;
-    my $mic = $is_mdn ? undef : ($pre_mic // Digest::SHA1::sha1_base64($data) . '=');
+    my $mic = $is_mdn ? undef : ($pre_mic // $self->_base64_digest($data));
+    my $mic_alg = $mic ? $self->{Signature} : undef;
 
     if ($is_mdn && $should_mdn_signed || !$is_mdn && $self->{Signature}) {
         $data = $self->{_smime_sign}->sign($data);
@@ -695,7 +703,7 @@ sub _send_preprocess
         $is_mdn ? () : (
             'Disposition-notification-To' => 'example@example.com',
             ($self->{Signature} ? (
-                'Disposition-Notification-Options' => 'signed-receipt-protocol=required, pkcs7-signature; signed-receipt-micalg=required, sha1'
+                'Disposition-Notification-Options' => 'signed-receipt-protocol=required, pkcs7-signature; signed-receipt-micalg=required, ' . $self->{Signature}
             ) : ()),
             ($self->{MdnAsyncUrl} ? (
                 'Receipt-Delivery-Option' => $self->{MdnAsyncUrl}
@@ -704,7 +712,7 @@ sub _send_preprocess
     );
     $payload = decode_base64($payload) 
         if $is_base64;
-    return (\@header, $payload, $mic);
+    return (\@header, $payload, $mic, $mic_alg);
 }
 
 =back
@@ -733,7 +741,7 @@ sub _send
     my ($self, $data, $message_id, $pre_mic) = @_;
 
     my $target_url = $self->{PartnerUrl};
-    my ($headers, $payload, $mic) =
+    my ($headers, $payload, $mic, $mic_alg) =
         $self->_send_preprocess($data, $message_id, $target_url, $pre_mic);
 
     my $req = HTTP::Request->new(POST => $target_url, \@$headers);
@@ -751,13 +759,13 @@ sub _send
         # Remove the status line
         $content =~ s{^.*?\r?\n}{};
         $mdn = $self->_parse_mdn($content);
-        $mdn->match_mic($mic, 'sha1');
+        $mdn->match_mic($mic, $self->{Signature});
 
     } else {
         $mdn = 
             Net::AS2::MDN->create_error_mdn(sprintf('HTTP failure: %s', $resp->status_line));
     }
-    return wantarray ? ($mdn, $mic) : $mdn;
+    return wantarray ? ($mdn, $mic, $mic_alg) : $mdn;
 }
 
 sub _parse_mdn
@@ -824,6 +832,21 @@ sub _pkcs7_base64
     }
 
     return $content;
+}
+
+sub _base64_digest {
+    my ($self, $content) = @_;
+
+    $self->{Digest}->add($content);
+
+    my $digest = $self->{Digest}->b64digest();
+
+    # pad the base64 string
+    while (length($digest) % 4) {
+        $digest .= '=';
+    }
+
+    return $digest;
 }
 
 1;

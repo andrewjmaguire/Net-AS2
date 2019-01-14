@@ -24,12 +24,13 @@ my $crlf = "\x0d\x0a";
 
 sub new
 {
-    my ($class, $message_id, $async_url, $should_mdn_sign, $mic, $content) = @_;
+    my ($class, $message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg) = @_;
 
     my $self = $class->_create_message($message_id, $async_url, $should_mdn_sign);
     $self->{success} = 1;
     $self->{content} = $content;
     $self->{mic} = $mic;
+    $self->{mic_alg} = $mic_alg;
     return $self;
 }
 
@@ -78,7 +79,7 @@ sub create_from_serialized_state
 {
     my ($class, $state) = @_;
 
-    my ($version, $status, $message_id, $mic, $async_url, $should_mdn_sign, $status_text, $plain_text)
+    my ($version, $status, $message_id, $mic, $mic_alg, $async_url, $should_mdn_sign, $status_text, $plain_text)
         = split(/\n/, $state);
     croak "Net::AS2::Message state version is not supported" 
         unless defined $version && $version eq 'v1' && defined $plain_text;
@@ -92,6 +93,7 @@ sub create_from_serialized_state
         ),
         message_id => $message_id,
         mic => $mic,
+        mic_alg => $mic_alg,
         status_text => $status_text,
         should_mdn_sign => $should_mdn_sign,
         plain_text => $plain_text,
@@ -169,12 +171,21 @@ sub content { return (shift)->{content}; }
 
 =item $msg->mic
 
-Returns the SHA-1 MIC of the message.
+Returns the SHA Digest MIC of the message.
 This is only defined when C<is_success> is true.
 
 =cut
 
 sub mic { return (shift)->{mic}; }
+
+=item $msg->mic_alg
+
+Returns the SHA Algorithm used for the message.
+This is only defined when C<is_success> is true.
+
+=cut
+
+sub mic_alg { return (shift)->{mic_alg}; }
 
 =item $msg->error_status_text
 
@@ -215,6 +226,7 @@ sub serialized_state {
         $self->is_success ? 1 : $self->is_error ? -1 : -2,
         $self->{message_id},
         $self->{mic} // '',
+        $self->{mic_alg} // 'sha1',
         $self->{async_url} // '',
         $self->{should_mdn_sign} // '',
         $self->{status_text} // '', 
@@ -236,8 +248,10 @@ sub notification_options_check
 		unless 'pkcs7-signature' ~~ \@values;
         }
         if (lc($key) eq 'signed-receipt-micalg') {
-            return 'requested MIC algorithm is not supported' 
-		unless 'sha1' ~~ \@values;
+            foreach my $value (@values) {
+                return 'requested MIC algorithm is not supported' 
+                    unless $value =~ qr{^sha-?(?:1|224|256|384|512)$};
+            }
         }
     }
     return undef;

@@ -1,4 +1,4 @@
-use Test::More tests => 9;
+use Test::More tests => 33;
 
 use utf8;
 use strict;
@@ -15,7 +15,7 @@ my $async_url = 'https://example.com:8081/hey';
 my $mic = 'TESTBASE64++=';
 my $data = "测试\x01\x02\r\nGood";
 
-my $msg_success = Net::AS2::Message->new($original_message_id, $async_url, 1, $mic, $data);
+my $msg_success = Net::AS2::Message->new($original_message_id, $async_url, 1, $mic, $data, 'sha1');
 my $msg_error = Net::AS2::Message->create_error_message($original_message_id, $async_url, 0, 'error-status', 'error-plain');
 my $msg_failure = Net::AS2::Message->create_failure_message($original_message_id, undef, 1, 'failure-status', 'failure-plain');
 
@@ -25,8 +25,10 @@ sub check_pair {
     is($mdn->async_url, $msg->async_url);
     is($mdn->should_sign, $msg->should_mdn_sign);
     is($mdn->original_message_id, $msg->message_id);
-    is($mdn->{mic_hash}, $msg->mic)
-        if defined $msg->mic;
+    if (defined $msg->mic) {
+        is($mdn->{mic_hash}, $msg->mic);
+        is($mdn->{mic_alg},  $msg->mic_alg);
+    }
     if (defined $msg->error_status_text) {
         is($mdn->{status_text}, $msg->error_status_text);
         is($mdn->{plain_text}, $msg->error_plain_text);
@@ -110,7 +112,7 @@ subtest 'MDN Failure' => sub {
     mdn_self_check($mdn);
 };
 
-__END__
+#__END__
 
 my %config_1 = (
     MyId => 'Mr 1', MyKey => key(1), MyCertificate => cert(1), 
@@ -121,6 +123,7 @@ my %config_2 = (
     MyId => 'Mr 2', MyKey => key(2), MyCertificate => cert(2), 
     PartnerId => 'Mr 1', PartnerCertificate => cert(1),
     PartnerUrl => 'http://example.com/dummy/a_1/msg');
+
 
 my $test_async = sub {
     my ($mod) = @_;
@@ -135,13 +138,13 @@ my $test_async = sub {
     my $data = "测试\nThis is a test\r\n\x01\x02\x00";
     my $message_id = rand . '@' . 'localhost';
 
-    my ($mdn_temp, $mic1) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
+    my ($mdn_temp, $mic1, $mic1_alg) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
     ok($mdn_temp->is_unparsable, 'ASYNC data unparsable');
     my $req = $Mock::LWP::UserAgent::last_request;
 
     my $msg = $a2->decode_message(extract_headers($req), $req->content);
 
-    ok($msg->is_success, 'Message received sucessfully');
+    ok($msg->is_success, 'Message received successfully');
     ok($msg->is_mdn_async, 'MDN is async');
     is($msg->async_url, 'http://example.com/dummy/a_1/mdn');
     is(decode('utf8', $msg->content), $data, 'Content matches');
@@ -152,7 +155,8 @@ my $test_async = sub {
     my $mdn_req = $Mock::LWP::UserAgent::last_request;
     my $mdn = $a1->decode_mdn(extract_headers($mdn_req), $mdn_req->content);
     ok($mdn->is_success, 'MDN is success');
-    ok($mdn->match_mic($mic1, 'sha1'), 'MDN MIC matches');
+    ok($mdn->match_mic($mic1, $mic1_alg), 'MDN MIC matches')
+      if defined $mic1_alg;
     is($mdn->original_message_id, $message_id, 'MDN message id matches');
 };
 
@@ -176,7 +180,7 @@ my $test_sync = sub {
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
         my $msg = $a2->decode_message(extract_headers($req), $req->content);
-        ok($msg->is_success, 'Message received sucessfully');
+        ok($msg->is_success, 'Message received successfully');
         ok(!$msg->is_mdn_async, 'MDN is sync');
         is(decode('utf8', $msg->content), $data, 'Content matches');
 
@@ -185,12 +189,11 @@ my $test_sync = sub {
         return $r;
     };
 
-    my ($mdn, $mic1) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
-
-    use Data::Dumper;
+    my ($mdn, $mic1, $mic1_alg) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
 
     ok($mdn->is_success, 'MDN is success');
-    ok($mdn->match_mic($mic1, 'sha1'), 'MDN MIC matches');
+    ok($mdn->match_mic($mic1, $mic1_alg), 'MDN MIC matches')
+      if defined $mic1_alg;
     is($mdn->original_message_id, $message_id, 'MDN message id matches');
 };
 
@@ -223,7 +226,7 @@ subtest 'Encryption optional pass' => sub {
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
         my $msg = $a2->decode_message(extract_headers($req), $req->content);
-        ok($msg->is_success, 'Message received sucessfully');
+        ok($msg->is_success, 'Message received successfully');
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
         return $r;
@@ -242,8 +245,8 @@ subtest 'Encryption failed' => sub {
         my $req = shift;
         my $msg = $a2->decode_message(extract_headers($req), $req->content);
         ok($msg->is_error, 'Message received with error');
-        is($msg->error_status_text, 'decryption-failed');
-        ok($msg->error_plain_text =~ /decrypt/i);
+        is($msg->error_status_text, 'decryption-failed', 'Error status text');
+        ok($msg->error_plain_text =~ /decrypt/i, 'Error plain text');
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
         return $r;
@@ -259,8 +262,8 @@ subtest 'Signature required check' => sub {
         my $req = shift;
         my $msg = $a2->decode_message(extract_headers($req), $req->content);
         ok($msg->is_error, 'Message received with error');
-        is($msg->error_status_text, 'insufficient-message-security');
-        ok($msg->error_plain_text =~ /signature/i);
+        is($msg->error_status_text, 'insufficient-message-security', 'Error status text');
+        ok($msg->error_plain_text =~ /signature/i, 'Error plain text');
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
         return $r;
@@ -275,9 +278,70 @@ subtest 'Signature optional pass' => sub {
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
         my $msg = $a2->decode_message(extract_headers($req), $req->content);
-        ok($msg->is_success, 'Message received sucessfully');
+        ok($msg->is_success, 'Message received successfully');
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
+        return $r;
+    };
+    $a1->send("Test", 'Type' => 'text/plain');
+};
+
+
+subtest 'Signature sha1' => sub {
+    my $a1 = Mock::Net::AS2->new(%config_1, Signature => 'sha1', Mdn => 'sync');
+    my $a2 = Mock::Net::AS2->new(%config_2, Signature => 'sha1');
+
+    local $Mock::LWP::UserAgent::response_handler = sub {
+        my $req = shift;
+        my $msg = $a2->decode_message(extract_headers($req), $req->content);
+        ok($msg->is_success, 'Message received successfully');
+
+        my $r = HTTP::Response->new(20, 'OK', [], '');
+        return $r;
+    };
+    $a1->send("Test", 'Type' => 'text/plain');
+};
+
+subtest 'Signature sha256' => sub {
+    my $a1 = Mock::Net::AS2->new(%config_1, Signature => 'sha256', Mdn => 'sync');
+    my $a2 = Mock::Net::AS2->new(%config_2, Signature => 'sha256');
+
+    local $Mock::LWP::UserAgent::response_handler = sub {
+        my $req = shift;
+        my $msg = $a2->decode_message(extract_headers($req), $req->content);
+        ok($msg->is_success, 'Message received successfully');
+
+        my $r = HTTP::Response->new(20, 'OK', [], '');
+        return $r;
+    };
+    $a1->send("Test", 'Type' => 'text/plain');
+};
+
+subtest 'Signature sha384' => sub {
+    my $a1 = Mock::Net::AS2->new(%config_1, Signature => 'sha384', Mdn => 'sync');
+    my $a2 = Mock::Net::AS2->new(%config_2, Signature => 'sha384');
+
+    local $Mock::LWP::UserAgent::response_handler = sub {
+        my $req = shift;
+        my $msg = $a2->decode_message(extract_headers($req), $req->content);
+        ok($msg->is_success, 'Message received successfully');
+
+        my $r = HTTP::Response->new(20, 'OK', [], '');
+        return $r;
+    };
+    $a1->send("Test", 'Type' => 'text/plain');
+};
+
+subtest 'Signature sha512' => sub {
+    my $a1 = Mock::Net::AS2->new(%config_1, Signature => 'sha512', Mdn => 'sync');
+    my $a2 = Mock::Net::AS2->new(%config_2, Signature => 'sha512');
+
+    local $Mock::LWP::UserAgent::response_handler = sub {
+        my $req = shift;
+        my $msg = $a2->decode_message(extract_headers($req), $req->content);
+        ok($msg->is_success, 'Message received successfully');
+
+        my $r = HTTP::Response->new(20, 'OK', [], '');
         return $r;
     };
     $a1->send("Test", 'Type' => 'text/plain');
@@ -293,8 +357,8 @@ subtest 'Signature failed' => sub {
         my $req = shift;
         my $msg = $a2->decode_message(extract_headers($req), $req->content);
         ok($msg->is_error, 'Message received with error');
-        is($msg->error_status_text, 'insufficient-message-security');
-        ok($msg->error_plain_text =~ /unable to verify/i);
+        is($msg->error_status_text, 'insufficient-message-security', 'Error status text');
+        ok($msg->error_plain_text =~ /unable to verify/i, 'Error plain text');
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
         return $r;
@@ -307,8 +371,8 @@ subtest 'Missing headers' => sub {
 
     my $msg = $a1->decode_message({}, '');
     ok($msg->is_error, 'Message received with error');
-    is($msg->error_status_text, 'unexpected-processing-error');
-    ok($msg->error_plain_text =~ /headers/i);
+    is($msg->error_status_text, 'unexpected-processing-error', 'Error status text');
+    ok($msg->error_plain_text =~ /headers/i, 'Error plain text');
 };
 
 subtest 'Mismatch AS2 Id' => sub {
@@ -319,8 +383,8 @@ subtest 'Mismatch AS2 Id' => sub {
         my $req = shift;
         my $msg = $a2->decode_message(extract_headers($req), $req->content);
         ok($msg->is_error, 'Message received with error');
-        is($msg->error_status_text, 'authentication-failed');
-        ok($msg->error_plain_text =~ /AS2-/i);
+        is($msg->error_status_text, 'authentication-failed', 'Error status text');
+        ok($msg->error_plain_text =~ /AS2-/i, 'Error plain text');
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
         return $r;
@@ -332,14 +396,52 @@ subtest 'Async MDN' => sub {
     my $a1 = Mock::Net::AS2->new(%config_1);
     my $a2 = Mock::Net::AS2->new(%config_2);
 
-    my $msg = Net::AS2::Message->new("orig-id", "http://example.com/async_url", 1, "mic", "data");
+    my $msg = Net::AS2::Message->new("orig-id", "http://example.com/async_url", 1, "mic", "data", 'sha1');
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
         my $mdn = $a1->decode_mdn(extract_headers($req), $req->content);
-        ok($mdn->match_mic('mic', 'sha1'));
-        ok($mdn->is_success, 'Message received with error');
-        is($mdn->original_message_id, 'orig-id');
+        ok($mdn->match_mic('mic', 'sha1'), 'Matched mic as sha1');
+        ok($mdn->is_success, 'Message received successfully');
+        is($mdn->original_message_id, 'orig-id', 'Original message id');
+
+        my $r = HTTP::Response->new(200, 'OK', [], '');
+        return $r;
+    };
+    $a2->send_async_mdn(Net::AS2::MDN->create_success($msg), "MDN ID");
+};
+
+subtest 'Async MDN sha256' => sub {
+    my $a1 = Mock::Net::AS2->new(%config_1, Signature => 'sha256');
+    my $a2 = Mock::Net::AS2->new(%config_2, Signature => 'sha256');
+
+    my $msg = Net::AS2::Message->new("orig-id", "http://example.com/async_url", 1, "mic", "data", 'sha256');
+
+    local $Mock::LWP::UserAgent::response_handler = sub {
+        my $req = shift;
+        my $mdn = $a1->decode_mdn(extract_headers($req), $req->content);
+        ok($mdn->match_mic('mic', 'sha256'), 'Matched mic as sha256');
+        ok($mdn->is_success, 'Message received successfully');
+        is($mdn->original_message_id, 'orig-id', 'Original message id');
+        #diag explain $mdn;
+        my $r = HTTP::Response->new(200, 'OK', [], '');
+        return $r;
+    };
+    $a2->send_async_mdn(Net::AS2::MDN->create_success($msg), "MDN ID");
+};
+
+subtest 'Async MDN sha384' => sub {
+    my $a1 = Mock::Net::AS2->new(%config_1, Signature => 'sha384');
+    my $a2 = Mock::Net::AS2->new(%config_2, Signature => 'sha384');
+
+    my $msg = Net::AS2::Message->new("orig-id", "http://example.com/async_url", 1, "mic", "data", 'sha384');
+
+    local $Mock::LWP::UserAgent::response_handler = sub {
+        my $req = shift;
+        my $mdn = $a1->decode_mdn(extract_headers($req), $req->content);
+        ok($mdn->match_mic('mic', 'sha384'), 'Matched mic as sha384');
+        ok($mdn->is_success, 'Message received successfully');
+        is($mdn->original_message_id, 'orig-id', 'Original message id');
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
         return $r;

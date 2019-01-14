@@ -157,7 +157,7 @@ sub _create_from_message
         plain_text => $plain_text // $status_text,
         original_message_id => $message->message_id,
         mic_hash => $message->mic,
-        mic_alg => defined $message->mic ? 'sha1' : undef,
+        mic_alg => $message->mic_alg,
         async_url => $message->async_url,
         should_sign => $message->should_mdn_sign,
     };
@@ -293,13 +293,13 @@ sub _parse_mdn
 
 =over 4
 
-=item $mdn->match($mic, $alg)
+=item $mdn->match_mic($mic, $alg)
 
 Verify the MDN MIC value with a pre-calculated one to make sure the receiving party got what we sent.
 
 The MDN will be marked C<is_error> if the MICs do not match.
 
-    $mdn->match($mic, 'sha1');
+    $mdn->match_mic($mic, 'sha1');
     if ($mdn->is_success) {
         # still success after comparing mic
     }
@@ -318,7 +318,7 @@ sub match_mic
     {
         $self->{success} = $self->{warning} = $self->{failure} = 0;
         $self->{error} = 1;
-        $self->{status_text} .= "; MDN MIC validation failure";
+        $self->{status_text} .= "; MDN MIC validation failure $self->{mic_alg} ne $alg";
         return 0;
     }
     return 1;

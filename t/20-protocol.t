@@ -31,7 +31,7 @@ my $test_async = sub {
     my $data = "测试\nThis is a test\r\n\x01\x02\x00";
     my $message_id = rand . '@' . 'localhost';
 
-    my ($mdn_temp, $mic1) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
+    my ($mdn_temp, $mic1, $mic1_alg) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
     ok($mdn_temp->is_unparsable, 'ASYNC data unparsable');
     my $req = $Mock::LWP::UserAgent::last_request;
 
@@ -48,7 +48,7 @@ my $test_async = sub {
     my $mdn_req = $Mock::LWP::UserAgent::last_request;
     my $mdn = $a1->decode_mdn(extract_headers($mdn_req), $mdn_req->content);
     ok($mdn->is_success, 'MDN is success');
-    ok($mdn->match_mic($mic1, 'sha1'), 'MDN MIC matches');
+    ok($mdn->match_mic($mic1, $mic1_alg), 'MDN MIC matches');
     is($mdn->original_message_id, $message_id, 'MDN message id matches');
 };
 
@@ -81,12 +81,12 @@ my $test_sync = sub {
         return $r;
     };
 
-    my ($mdn, $mic1) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
+    my ($mdn, $mic1, $mic1_alg) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
 
     use Data::Dumper;
 
     ok($mdn->is_success, 'MDN is success');
-    ok($mdn->match_mic($mic1, 'sha1'), 'MDN MIC matches');
+    ok($mdn->match_mic($mic1, $mic1_alg), 'MDN MIC matches');
     is($mdn->original_message_id, $message_id, 'MDN message id matches');
 };
 
@@ -228,7 +228,7 @@ subtest 'Async MDN' => sub {
     my $a1 = Mock::Net::AS2->new(%config_1);
     my $a2 = Mock::Net::AS2->new(%config_2);
 
-    my $msg = Net::AS2::Message->new("orig-id", "http://example.com/async_url", 1, "mic", "data");
+    my $msg = Net::AS2::Message->new("orig-id", "http://example.com/async_url", 1, "mic", "data", 'sha1');
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;

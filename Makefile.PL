@@ -12,7 +12,7 @@ WriteMakefile(
         'Crypt::SMIME' => 0,
         'LWP::UserAgent' => 0,
         'HTTP::Message' => 0,
-        'Digest::SHA1' => 0,
+        'Digest::SHA' => 0,
         'MIME::Base64' => 0,
         'MIME::Tools' => 0,
     }
