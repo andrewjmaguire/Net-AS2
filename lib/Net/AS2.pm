@@ -139,7 +139,7 @@ Please includes the C<-----BEGIN RSA PRIVATE KEY-----> and C<-----END RSA PRIVAT
 =item MyEncryptionKey, MySignatureKey
 
 I<Optional.>
-Different private keys could be used for encryption and signing. L<MyKey> will be used if not independently supplied.
+Different private keys could be used for encryption and signing. C<MyKey> will be used if not independently supplied.
 
 =item MyCertificate
 
@@ -150,7 +150,7 @@ Please includes the C<-----BEGIN CERTIFICATE-----> and C<-----END CERTIFICATE---
 =item MyEncryptionCertificate, MySignatureCertificate
 
 I<Optional.>
-Different certificate could be used for encryption and signing. L<MyCertificate> will be used if not independently supplied.
+Different certificate could be used for encryption and signing. C<MyCertificate> will be used if not independently supplied.
 
 =item PartnerCertificate
 
@@ -195,12 +195,12 @@ The preferred MDN method - C<sync> or C<async>. The default is C<sync>.
 
 =item MdnAsyncUrl
 
-i<Required if Mdn is async>. 
+I<Required if Mdn is async>.
 The Url where the parten should send the async MDN to.
 
 =item Timeout
 
-i<Optional.>
+I<Optional.>
 The timeout in seconds for HTTP communication. The default is 30.
 
 This is passed to LWP::UserAgent.
@@ -859,8 +859,8 @@ sub _base64_digest {
 
 =item *
 
-A bug in L<Crypt::SMIME> will caused test to fail - specifically failed to add public key after decryption failure.
-I applied the fixes and fork it to L<github|https://github.com/sam0737/perl-crypt-smime>.
+A bug in L<Crypt::SMIME> may cause tests to fail - specifically failed to add public key after decryption failure.
+It appears to be related to a memory leak in L<Crypt::SMIME>.
 
 =back
 
@@ -878,8 +878,8 @@ This is free software; you can redistribute it and/or modify it under the same t
 
 =head1 DISCLAIMER OF WARRANTY
 
-This module is not certificated by any AS2 body. This module generates MDN on behave of you.  
-When using this module, you must have reviewed and responsible for all the actions and in-actions caused by this module.
+This module is not certificated by any AS2 body. This module generates MDN on your behalf.
+When using this module, you must have reviewed and be responsible for all the actions and in-actions caused by this module.
 
 More legal jargon follows:
 
