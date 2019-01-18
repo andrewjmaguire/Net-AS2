@@ -164,6 +164,51 @@ I<Optional.>
 Different certificate could be used for encryption and signing. If so, load them here.
 L<PartnerCertificate> will be used if not independently supplied.
 
+=item CertificateDirectory
+
+A directory from which the private key and public certificate files
+may be read from.
+
+=item MyKeyFile
+
+Sets C<MyKey> using a filename or pattern that contains the private key.
+
+The files are located under C<CertificateDirectory>.
+
+=item MyEncryptionKeyFile, MySignatureKeyFile
+
+I<Optional.> Sets C<MyEncryptionKey> and/or C<MySignatureKey> using a
+filename or pattern that contains the private keys. L<MyKeyFile> will
+be used if not supplied.
+
+=item MyCertificateFile
+
+Sets C<MyCertificate> using a filename or pattern that contains the
+corresponding public certificate.
+
+The files are located under C<CertificateDirectory>.
+
+=item MyEncryptionCertificateFile, MySignatureCertificateFile
+
+I<Optional.> Sets C<MyEncryptionCertificate> and/or
+C<MySignatureCertificate> using a filename or pattern that contains
+the certificate files for encryption and signing. L<MyCertificateFile>
+will be used if not independently supplied.
+
+=item PartnerCertificateFile
+
+Sets C<PartnerCertificate> using a filename or pattern that contains
+the partner's public certificate.
+
+The files are located under C<CertificateDirectory>.
+
+=item PartnerEncryptionCertificateFile, PartnerSignatureCertificateFile
+
+I<Optional.> Sets C<PartnerEncryptionCertificate> and/or
+C<PartnerSignatureCertificate> using a filename or pattern that
+contains the certificate files for encryption and signing, otherwise
+L<PartnerCertificateFile> will be used
+
 =item Encryption
 
 I<Optional.>
@@ -266,12 +311,10 @@ sub _validations
     croak sprintf("signature %s is not supported", $self->{Signature})
         unless !$self->{Signature} || $self->{Signature} =~ qr{^sha-?(?:1|224|256|384|512)$};
 
-    $self->{MyEncryptionKey} //= $self->{MyKey};
-    $self->{MyEncryptionCertificate} //= $self->{MyCertificate};
-    $self->{MySignatureKey} //= $self->{MyKey};
-    $self->{MySignatureCertificate} //= $self->{MyCertificate};
-    $self->{PartnerEncryptionCertificate} //= $self->{PartnerCertificate};
-    $self->{PartnerSignatureCertificate} //= $self->{PartnerCertificate};
+    $self->_setup('My',      'Key',         qr{[.]key$});
+    $self->_setup('My',      'Certificate', qr{[.]cert?$});
+    $self->_setup('Partner', 'Certificate', qr{[.]cert?$});
+
     delete $self->{MyKey};
     delete $self->{MyCertificate};
     delete $self->{PartnerCertificate};
@@ -312,6 +355,57 @@ sub _validations
     else {
         $self->{Digest} = Digest::SHA->new(1);
     }
+}
+
+=head3 _setup ( prefix, postfix, file_regexp )
+
+Internal routine that configures the private key(s) and certificates
+from the options that are passed in.
+
+The 'File' options allow for a glob pattern to be given.
+
+If multiple files match the pattern, the last matching file in a
+sorted list is used. This is to allow for file names containing dates
+that indicate their start and expiry dates.
+
+=cut
+
+sub _setup {
+    my ($self, $prefix, $postfix, $regexp) = @_;
+
+    foreach my $type (('', 'Encryption', 'Signature')) {
+        my $key_name = $prefix . $type . $postfix;
+        my $key_file = $key_name . 'File';
+        if (exists $self->{$key_file}) {
+            $self->{$key_name} //= $self->_read_pattern($key_file, $regexp);
+        }
+        next if $type eq '';
+
+        $self->{$key_name} //= $self->{$prefix . $postfix};
+    }
+}
+
+sub _read_pattern {
+    my ($self, $key_file, $regex) = @_;
+
+    my $pattern = $self->{$key_file};
+
+    # get latest matching file pattern
+    my ($file) = reverse sort glob($self->{CertificateDirectory} . '/' . $pattern);
+
+    croak "No file matching '$pattern'" unless $file;
+
+    croak "'$key_file' file pattern '$pattern' does not match its expected regex" if $pattern !~ $regex;
+
+    return _read_file($file);
+}
+
+sub _read_file {
+    my($file) = @_;
+
+    open my $fh, '<', $file or croak "Failed to read $file";
+    local($/) = undef;
+    return scalar(<$fh>);
 }
 
 =back
