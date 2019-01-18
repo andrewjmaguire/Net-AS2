@@ -1,8 +1,6 @@
 package Net::AS2;
-use 5.018;
 use strict;
 use warnings qw(all);
-no if $] >= 5.018, warnings => "experimental::smartmatch";
 
 =head1 NAME
 
@@ -262,7 +260,7 @@ sub _validations
 
     $self->{Encryption} = lc($self->{Encryption} // '3des');
     croak sprintf("encryption %s is not supported", $self->{Encryption})
-        unless !$self->{Encryption} || $self->{Encryption} ~~ ['3des'];
+        unless !$self->{Encryption} || $self->{Encryption} eq '3des';
 
     $self->{Signature} = lc($self->{Signature} // 'sha1');
     croak sprintf("signature %s is not supported", $self->{Signature})
@@ -294,7 +292,7 @@ sub _validations
 
     $self->{Mdn} = lc($self->{Mdn} // 'sync');
     croak sprintf("mdn %s is not supported", $self->{Mdn})
-        unless lc($self->{Mdn}) ~~ [qw(sync async)];
+        unless grep { $_ eq lc($self->{Mdn}) } qw(sync async);
 
     croak "mdn_async_url is invalid"
         unless

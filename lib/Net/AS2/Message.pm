@@ -1,8 +1,6 @@
 package Net::AS2::Message;
-use 5.018;
 use strict;
 use warnings qw(all);
-no if $] >= 5.018, warnings => "experimental::smartmatch";
 
 =head1 NAME
 
@@ -246,8 +244,8 @@ sub notification_options_check
         my ($requireness, @values) = lc($value) =~ /\s*(.+?)\s*(?:,|$)/g;
 
         if (lc($key) eq 'signed-receipt-protocol') {
-            return 'requested MDN protocol is not supported' 
-		unless 'pkcs7-signature' ~~ \@values;
+            return 'requested MDN protocol is not supported'
+		unless grep { $_ eq 'pkcs7-signature' } @values;
         }
         if (lc($key) eq 'signed-receipt-micalg') {
             foreach my $value (@values) {
