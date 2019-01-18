@@ -867,6 +867,9 @@ Source code is maintained here at L<https://github.com/sam0737/perl-net-as2>. Pa
 =head1 COPYRIGHT AND LICENSE
 
 This software is copyright (c) 2012 by Sam Wong.
+This software is copyright (c) 2019 Enrolment Services, New Zealand Electoral Commission.
+
+Additional contributions by Andrew Maguire <ajm@cpan.org>
 
 This is free software; you can redistribute it and/or modify it under the same terms as the Perl 5 programming language system itself.
 
