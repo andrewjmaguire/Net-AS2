@@ -2,7 +2,7 @@ package Net::AS2;
 use strict;
 use warnings qw(all);
 
-our $VERSION = '0.1';
+our $VERSION = '0.9';
 
 =head1 NAME
 
