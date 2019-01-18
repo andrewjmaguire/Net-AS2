@@ -7,7 +7,11 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 t/00-load.t
 t/10-constructor.t
-t/20-protocol.t
+t/20-protocol-sync.t
+t/22-protocol-async.t
+t/24-protocol-encryption.t
+t/26-protocol-signature.t
+t/28-protocol.t
 t/30-message_mdn.t
 t/test.1.cert
 t/test.1.key
