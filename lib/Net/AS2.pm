@@ -343,18 +343,20 @@ sub _validations
             defined $self->{MdnAsyncUrl} && $self->{MdnAsyncUrl} =~ m{^https?://[\x20-\x7E]+$} &&
                 $self->{Mdn} eq 'async';
 
-    $self->{Timeout} //= 30;
-    croak "timeout is invalid"
-        unless $self->{Timeout} =~ /^[0-9]+$/;
-
-    $self->{UserAgent} //= "Perl AS2/$VERSION";
-
     if (($self->{Signature} // '') =~ /^sha-?(\d+)/i) {
         $self->{Digest} = Digest::SHA->new($1);
     }
     else {
         $self->{Digest} = Digest::SHA->new(1);
     }
+
+    my $ua_class = $self->{UserAgentClass} //= "Net::AS2::HTTP";
+
+    $ua_class .= '.pm';
+    $ua_class =~ s{::}{/}g;
+    require $ua_class;
+
+    $self->create_useragent() or croak "cannot create $self->{UserAgentClass}";
 }
 
 =head3 _setup ( prefix, postfix, file_regexp )
@@ -809,25 +811,22 @@ sub _send_preprocess
     return (\@header, $payload, $mic, $mic_alg);
 }
 
-=back
-
-=head2 Test Hooks
-
 =over 4
 
 =item $as2->create_useragent()
 
-This should return a C<LWP::UserAgent> usable for handling HTTP request.
+This returns an object for handling requests.
 
-This allows test code to monitor the HTTP request sending out.
+It is configured via the C<UserAgentClass> option.
+It defaults to L<Net::AS2::HTTP>.
 
 =cut
 
 sub create_useragent
 {
     my $self = shift;
-    my $ua = new LWP::UserAgent(timeout => $self->{Timeout}, agent => $self->{UserAgent});
-    return $ua;
+
+    return $self->{UserAgentClass}->new($self);
 }
 
 sub _send
@@ -953,6 +952,8 @@ It appears to be related to a memory leak in L<Crypt::SMIME>.
 =back
 
 =head1 SEE ALSO
+
+L<Net::AS2::HTTP>, L<Net::AS2::HTTPS>
 
 L<Net::AS2::FAQ>, L<Net::AS2::Message>, L<Net::AS2::MDN>, L<MIME::Entity>
 

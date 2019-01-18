@@ -1,5 +1,7 @@
 lib/Net/AS2.pm
 lib/Net/AS2/FAQ.pm
+lib/Net/AS2/HTTP.pm
+lib/Net/AS2/HTTPS.pm            Requires LWP::Protocal::https to be installed
 lib/Net/AS2/MDN.pm
 lib/Net/AS2/Message.pm
 Changes
