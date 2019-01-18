@@ -839,14 +839,8 @@ sub _base64_digest {
 
     $self->{Digest}->add($content);
 
-    my $digest = $self->{Digest}->b64digest();
-
-    # pad the base64 string
-    while (length($digest) % 4) {
-        $digest .= '=';
-    }
-
-    return $digest;
+    # = is required for padding the base64 string.
+    return $self->{Digest}->b64digest() . '=';
 }
 
 1;
