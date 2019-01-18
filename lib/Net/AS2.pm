@@ -12,8 +12,8 @@ Net::AS2 - AS2 Protocol implementation (RFC 4130) used in Electronic Data Exchan
 
     ### Create an AS2 handler
     my $as2 = Net::AS2->new(
-            MyId => 'alice', 
-            MyKey => '...RSA KEY in PEM...', 
+            MyId => 'alice',
+            MyKey => '...RSA KEY in PEM...',
             MyCert => '...X509 Cert in PEM...'
             PartnerId => 'bob', PartnerCert => '...X509 Cert in PEM...'
         );
@@ -45,7 +45,7 @@ Net::AS2 - AS2 Protocol implementation (RFC 4130) used in Electronic Data Exchan
                     Net::AS2::MDN->create_from_unsuccessful_message($message),
                 'id-23456@localhost'
             );
-    } else 
+    } else
     {
         # SYNC MDN is expected
         my ($new_headers, $mdn_body) = $as2->prepare_sync_mdn(
@@ -66,18 +66,18 @@ and produce corresponding MDN.
 
 =head2 Protocol Introduction
 
-AS2 is a protocol that defines communication over HTTP(s), and 
+AS2 is a protocol that defines communication over HTTP(s), and
 optionally using SMIME as payload container, plus a mandated
-multipart/report machine readable Message Disposition Notification 
-response (MDN). 
+multipart/report machine readable Message Disposition Notification
+response (MDN).
 
-When encryption and signature are used in SMIME payload (agree between 
-parties), as well as a signed MDN, the protocol offers data 
+When encryption and signature are used in SMIME payload (agree between
+parties), as well as a signed MDN, the protocol offers data
 confidentiality, data integrity/authenticity, non-repudiation of
 origin, and non-repudiation of receipt over HTTP.
 
 In AS2, MDN can only be signed but not encrypted, some MIME headers
-are also exposed in the HTTP headers when sending. Use HTTPS if this 
+are also exposed in the HTTP headers when sending. Use HTTPS if this
 is a concerns.
 
 Encryption and Signature are done in PKCS7/SMIME favor. The certificate
@@ -119,62 +119,62 @@ The arguments are:
 
 =item MyId
 
-I<Required.> 
+I<Required.>
 Your AS2 name. This will be used in the AS2-From header.
 
 =item PartnerId
 
-I<Required.> 
+I<Required.>
 The AS2 name of the partner. This will be used in the AS2-To header.
 
 =item PartnerUrl
 
-I<Required.> 
+I<Required.>
 The Url of partner where message would be sent to.
 
 =item MyKey
 
 I<Required.>
-Our private key in PEM format. 
+Our private key in PEM format.
 Please includes the C<-----BEGIN RSA PRIVATE KEY-----> and C<-----END RSA PRIVATE KEY-----> line.
 
 =item MyEncryptionKey, MySignatureKey
 
-I<Optional.> 
+I<Optional.>
 Different private keys could be used for encryption and signing. L<MyKey> will be used if not independently supplied.
 
 =item MyCertificate
 
-I<Required.> 
+I<Required.>
 Our corresponding certificate in PEM format.
 Please includes the C<-----BEGIN CERTIFICATE-----> and C<-----END CERTIFICATE-----> line.
 
 =item MyEncryptionCertificate, MySignatureCertificate
 
-I<Optional.> 
+I<Optional.>
 Different certificate could be used for encryption and signing. L<MyCertificate> will be used if not independently supplied.
 
 =item PartnerCertificate
 
 I<Required.>
-Partner's certificate in PEM format. 
+Partner's certificate in PEM format.
 Please includes the C<-----BEGIN CERTIFICATE-----> and C<-----END CERTIFICATE-----> line.
 
 =item PartnerEncryptionCertificate, PartnerSignatureCertificate
 
-I<Optional.> 
-Different certificate could be used for encryption and signing. If so, load them here. 
+I<Optional.>
+Different certificate could be used for encryption and signing. If so, load them here.
 L<PartnerCertificate> will be used if not independently supplied.
 
 =item Encryption
 
-I<Optional.> 
+I<Optional.>
 Encryption alogrithm used in SMIME encryption operation. Only C<3des> is supported at this moment.
 
-If left undefined, encryption is enabled and C<3des> would be used. 
+If left undefined, encryption is enabled and C<3des> would be used.
 A false value must be specified to disable encryption.
 
-If enabled, encryption would also be required for receiving. 
+If enabled, encryption would also be required for receiving.
 Otherwise, encryption would be optional for receiving.
 
 =item Signature
@@ -192,7 +192,7 @@ Also, if enabled, signed MDN would be requested.
 
 =item Mdn
 
-I<Optional.> 
+I<Optional.>
 The preferred MDN method - C<sync> or C<async>. The default is C<sync>.
 
 =item MdnAsyncUrl
@@ -229,7 +229,7 @@ sub new
     $self->_validations();
 
     my $s_e = $self->{_smime_enc} = Crypt::SMIME->new();
-    
+
     eval { $s_e->setPrivateKey($self->{MyEncryptionKey}, $self->{MyEncryptionCertificate}); };
     croak "Unable to load private key/certificate for encryption: $@" if $@;
 
@@ -242,17 +242,17 @@ sub new
         $self->{PartnerEncryptionCertificate} eq $self->{PartnerSignatureCertificate}
     ) {
         $self->{_smime_sign} = $self->{_smime_enc};
-    } else 
+    } else
     {
         my $s_s = $self->{_smime_sign} = Crypt::SMIME->new();
-        
+
         eval { $s_s->setPrivateKey($self->{MySignatureKey}, $self->{MySignatureCertificate}); };
         croak "Unable to load private key/certificate for signature: $@" if $@;
 
         eval { $s_s->setPublicKey($self->{PartnerSignatureCertificate}); };
         croak "Unable to load public certificate for signature: $@" if $@;
     }
-    
+
     return $self;
 }
 
@@ -282,7 +282,7 @@ sub _validations
         MyId
         MyEncryptionKey MyEncryptionCertificate
         MySignatureKey MySignatureCertificate
-        PartnerId 
+        PartnerId
         PartnerEncryptionCertificate PartnerSignatureCertificate
         ))
     {
@@ -297,8 +297,8 @@ sub _validations
         unless lc($self->{Mdn}) ~~ [qw(sync async)];
 
     croak "mdn_async_url is invalid"
-        unless 
-            !defined $self->{MdnAsyncUrl} && $self->{Mdn} eq 'sync' || 
+        unless
+            !defined $self->{MdnAsyncUrl} && $self->{Mdn} eq 'sync' ||
             defined $self->{MdnAsyncUrl} && $self->{MdnAsyncUrl} =~ m{^https?://[\x20-\x7E]+$} &&
                 $self->{Mdn} eq 'async';
 
@@ -332,7 +332,7 @@ Content is the raw POST body of the request.
 This method always returns a C<Net::AS2::Message> object and never dies.
 The message could be successfully parsed, or contains corresponding error message.
 
-Check the C<$message-E<gt>is_async> property and send the MDN accordingly. 
+Check the C<$message-E<gt>is_async> property and send the MDN accordingly.
 
 If ASYNC MDN is requested, it should be sent after this HTTP request is returned
 or in another thread - some AS2 server might block otherwise, YMMV. How to handle
@@ -363,7 +363,7 @@ sub decode_message
             if defined $status;
         $new_prefix[2] = 1;
     }
-    
+
     unless (
         defined $headers->{CONTENT_TYPE} &&
         defined $headers->{HTTP_MESSAGE_ID} &&
@@ -387,7 +387,7 @@ sub decode_message
     my $merged_headers =
         join($crlf, map {
             if (/^HTTP_/ || /^CONTENT_TYPE$/) {
-                my $key = $_; 
+                my $key = $_;
                 $key =~ s/^HTTP_//;
                 $key =~ s/_/-/g;
                 "$key: ". $headers->{$_};
@@ -396,20 +396,20 @@ sub decode_message
 
     if ($self->{_smime_enc}->isEncrypted($merged_headers . $content))
     {
-        # OpenSSL (Crypt::SMIME) in Windows cannot handle binary content, 
+        # OpenSSL (Crypt::SMIME) in Windows cannot handle binary content,
         # convert the data to base64
-        $content = 
+        $content =
             "Content-Transfer-Encoding: base64$crlf" .
             $merged_headers .
             encode_base64($content);
         $is_content_raw = 0;
 
         $content = eval { $self->{_smime_enc}->decrypt($content); };
-        return Net::AS2::Message->create_error_message(@new_prefix, 
+        return Net::AS2::Message->create_error_message(@new_prefix,
             'decryption-failed', 'Unable to decrypt the message')
             if $@;
     } else {
-        return Net::AS2::Message->create_error_message(@new_prefix, 
+        return Net::AS2::Message->create_error_message(@new_prefix,
             'insufficient-message-security', 'Encryption is expected but the message is not encrypted')
             if $self->{Encryption};
     }
@@ -417,12 +417,12 @@ sub decode_message
     if ($self->{_smime_sign}->isSigned($is_content_raw ? $merged_headers . $content : $content))
     {
         if ($is_content_raw) {
-            $content = 
+            $content =
                 $merged_headers .
                 $content;
             $is_content_raw = 0;
         }
-        # OpenSSL (Crypt::SMIME) in Windows cannot handle binary content, 
+        # OpenSSL (Crypt::SMIME) in Windows cannot handle binary content,
         # convert signature part to base64
         $content = _pkcs7_base64($content);
         $content = eval { $self->{_smime_sign}->check($content); };
@@ -431,7 +431,7 @@ sub decode_message
             'insufficient-message-security', 'Unable to verify the signature')
             if $@;
     } else {
-        return Net::AS2::Message->create_error_message(@new_prefix, 
+        return Net::AS2::Message->create_error_message(@new_prefix,
             'insufficient-message-security', 'Signature is expected but the message is not signed')
             if $self->{Signature};
     }
@@ -444,8 +444,8 @@ sub decode_message
     my $entity = $parser->parse_data($is_content_raw ? $merged_headers . $content : $content);
     my $bh = $entity->bodyhandle;
 
-    return Net::AS2::Message->create_failure_message(@new_prefix, 
-        'unexpected-processing-error', 
+    return Net::AS2::Message->create_failure_message(@new_prefix,
+        'unexpected-processing-error',
         'MIME has no body (multipart message is not supported)')
         unless defined $bh;
 
@@ -455,18 +455,18 @@ sub decode_message
 
 =item $mdn = $as2->decode_mdn($headers, $content)
 
-I<Instance method.> 
+I<Instance method.>
 Decode the incoming HTTP request as AS2 MDN.
 
 Headers is an hash ref and should be supplied in PSGI format, or C<\%ENV> in CGI mode.
 Content is the raw POST body of the request.
 
 This method always returns a C<Net::AS2::MDN> object and never dies.
-The MDN could be successfully parsed, or contains unparsable error details 
+The MDN could be successfully parsed, or contains unparsable error details
 if it is malformed, or signature could not be verified.
 
-C<$mdn-E<gt>match_mic($content_mic)> should be called afterward with the 
-pre-calculated MIC from the outgoing message to verify the correctness 
+C<$mdn-E<gt>match_mic($content_mic)> should be called afterward with the
+pre-calculated MIC from the outgoing message to verify the correctness
 of the MIC.
 
 =cut
@@ -499,14 +499,14 @@ sub decode_mdn
     my $merged_headers =
         join($crlf, map {
             if (/^HTTP_/ || /^CONTENT_TYPE$/) {
-                my $key = $_; 
+                my $key = $_;
                 $key =~ s/^HTTP_//;
                 $key =~ s/_/-/g;
                 "$key: ". $headers->{$_};
             } else { (); }
         } keys %{$headers}) . "$crlf$crlf";
 
-    $content = 
+    $content =
         $merged_headers .
         $content;
 
@@ -517,7 +517,7 @@ sub decode_mdn
 
 Returns the headers and content to be sent in a HTTP response for a sync MDN.
 
-The MDN is usually created after an incoming message is received, with 
+The MDN is usually created after an incoming message is received, with
 C<Net::AS2::MDN-E<gt>create_success> or C<Net::AS2::MDN-E<gt>create_from_unsuccessful_message>.
 
 The headers are in arrayref format in PSGI response format.
@@ -534,7 +534,7 @@ For CGI, it should be sent like this:
     }
 
     binmode(STDOUT);
-    print $mh . "\x0d\x0a" . $content;    
+    print $mh . "\x0d\x0a" . $content;
 
 If message id not specified, a random one will be generated.
 
@@ -546,11 +546,11 @@ sub prepare_sync_mdn
 
     $mdn->recipient($self->{MyId});
 
-    $message_id = 
+    $message_id =
         defined $message_id && $message_id =~ /@/ ? $message_id :
         sprintf('<%s@%s>', ($message_id || time + rand()), hostname);
-    my ($headers, $payload) = 
-        $self->_send_preprocess($mdn->as_mime->stringify, $message_id, undef, undef, 
+    my ($headers, $payload) =
+        $self->_send_preprocess($mdn->as_mime->stringify, $message_id, undef, undef,
             1, $mdn->should_sign);
 
     return ($headers, $payload);
@@ -560,12 +560,12 @@ sub prepare_sync_mdn
 
 Send an ASYNC MDN requested by partner. Returns a L<HTTP::Response>.
 
-The MDN is usually created after an incoming message is received, with 
+The MDN is usually created after an incoming message is received, with
 C<Net::AS2::MDN-E<gt>create_success> or C<Net::AS2::MDN-E<gt>create_from_unsuccessful_message>.
 
 If message id is not specified, a random one will be generated.
 
-Note that the destination URL is passed by the partner in its request, 
+Note that the destination URL is passed by the partner in its request,
 but not specified during construction.
 
 =cut
@@ -578,13 +578,13 @@ sub send_async_mdn
     my $target_url = $mdn->async_url;
 
     croak "MDN async url is not defined" unless $target_url;
-    croak "MDN async url is not valid" unless $target_url =~ m{^https?://};    
+    croak "MDN async url is not valid" unless $target_url =~ m{^https?://};
 
-    $message_id = 
+    $message_id =
         defined $message_id && $message_id =~ /@/ ? $message_id :
         sprintf('<%s@%s>', ($message_id || time + rand()), hostname);
-    my ($headers, $payload) = 
-        $self->_send_preprocess($mdn->as_mime->stringify, $message_id, $target_url, undef, 
+    my ($headers, $payload) =
+        $self->_send_preprocess($mdn->as_mime->stringify, $message_id, $target_url, undef,
             1, $mdn->should_sign);
 
     my $req = HTTP::Request->new(POST => $target_url, \@$headers);
@@ -603,7 +603,7 @@ Send a message to the partner. Returns a C<Net::AS2::MDN> object and calculated 
 
 The data should be encoded (or assumed to be UTF-8 encoded).
 
-The mime headers should be listed in a hash. 
+The mime headers should be listed in a hash.
 It will be passed to C<MIME::Entity> almost transparently with some defaults dedicated for AS2,
 at least the following must also be supplied
 
@@ -623,7 +623,7 @@ In case of HTTP failure, the MDN object will be marked with C<$mdn-E<gt>is_error
 
 In case ASYNC MDN is expected, the MDN object returned will most likely be marked with
 C<$mdn-E<gt>is_unparsable> and should be ignored. A misbehave AS2 server could returns
-a valid MDN even if async was requested - in this case the C<$mdn-E<gt>is_success> would 
+a valid MDN even if async was requested - in this case the C<$mdn-E<gt>is_success> would
 be true.
 
 =cut
@@ -632,7 +632,7 @@ sub send
 {
     my ($self, $data, %opts) = @_;
 
-    croak "data is not defined" 
+    croak "data is not defined"
         unless defined $data;
 
     $data = utf8::is_utf8($data) ? encode("utf8", $data) : $data;
@@ -641,7 +641,7 @@ sub send
         unless $self->{Signature} || $self->{Encryption};
 
     my $message_id = $opts{MessageId} // '';
-    $message_id = 
+    $message_id =
         $message_id =~ /@/ ? $message_id :
         sprintf('<%s@%s>', ($message_id || time + rand()), hostname);
 
@@ -657,7 +657,7 @@ sub send
 sub _send_preprocess
 {
     my ($self, $data, $message_id, $target_url, $pre_mic, $is_mdn, $should_mdn_signed) = @_;
-    
+
     $data =~ s/(?:$crlf|\n)/$crlf/g;
     my $mic = $is_mdn ? undef : ($pre_mic // $self->_base64_digest($data));
     my $mic_alg = $mic ? $self->{Signature} : undef;
@@ -670,7 +670,7 @@ sub _send_preprocess
     }
 
     my ($header, $payload) = $data =~ /^(.*?)$crlf$crlf(.*)$/s;
-    
+
     $header =~ //;
 
     my @header;
@@ -701,7 +701,7 @@ sub _send_preprocess
         defined $target_url ? ('Recipient-Address' => $target_url) : (),
         'Message-Id' => $message_id,
         'AS2-Version' => '1.0',
-        'AS2-From' => _encode_as2_id($self->{MyId}), 'AS2-To' => _encode_as2_id($self->{PartnerId}), 
+        'AS2-From' => _encode_as2_id($self->{MyId}), 'AS2-To' => _encode_as2_id($self->{PartnerId}),
         $is_mdn ? () : (
             'Disposition-notification-To' => 'example@example.com',
             ($self->{Signature} ? (
@@ -712,7 +712,7 @@ sub _send_preprocess
             ) : ())
         ),
     );
-    $payload = decode_base64($payload) 
+    $payload = decode_base64($payload)
         if $is_base64;
     return (\@header, $payload, $mic, $mic_alg);
 }
@@ -764,7 +764,7 @@ sub _send
         $mdn->match_mic($mic, $self->{Signature});
 
     } else {
-        $mdn = 
+        $mdn =
             Net::AS2::MDN->create_error_mdn(sprintf('HTTP failure: %s', $resp->status_line));
     }
     return wantarray ? ($mdn, $mic, $mic_alg) : $mdn;
@@ -776,7 +776,7 @@ sub _parse_mdn
 
     if ($self->{_smime_sign}->isSigned($content))
     {
-        # OpenSSL (Crypt::SMIME) in Windows cannot handle binary content, 
+        # OpenSSL (Crypt::SMIME) in Windows cannot handle binary content,
         # convert signature part to base64
         $content = _pkcs7_base64($content);
         $content = eval { $self->{_smime_sign}->check($content); };

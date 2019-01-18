@@ -54,7 +54,7 @@ sub _create_message
 {
     my ($class, $message_id, $async_url, $should_mdn_sign, $status_text, $plain_text) = @_;
     $class = ref($class) || $class;
-    my $self = { 
+    my $self = {
         message_id => $message_id,
         async_url => $async_url,
         should_mdn_sign => $should_mdn_sign,
@@ -83,13 +83,13 @@ sub create_from_serialized_state
 
     my ($version, $status, $message_id, $mic, $mic_alg, $async_url, $should_mdn_sign, $status_text, $plain_text)
         = split(/\n/, $state);
-    croak "Net::AS2::Message state version is not supported" 
+    croak "Net::AS2::Message state version is not supported"
         unless defined $version && $version eq 'v1' && defined $plain_text;
 
     $class = ref($class) || $class;
-    my $self = { 
+    my $self = {
         (
-            $status eq '1' ? ( success => 1 ) : 
+            $status eq '1' ? ( success => 1 ) :
             $status eq '-1' ? ( error => 1 ) :
             ( failure => 1 )
         ),
@@ -121,7 +121,7 @@ sub is_success { return (shift)->{success}; }
 
 =item $msg->is_error
 
-Returns if the message was failed to parse. 
+Returns if the message was failed to parse.
 C<error_status_text> and C<error_plain_text> would be available.
 
 =cut
@@ -164,7 +164,7 @@ sub message_id { return (shift)->{message_id}; }
 
 =item $msg->content
 
-Returns the encoded content (binary) of the message. 
+Returns the encoded content (binary) of the message.
 This is only defined when C<is_success> is true.
 
 =cut
@@ -215,7 +215,7 @@ sub async_url { return (shift)->{async_url}; }
 
 =item $msg->serialized_state
 
-Returns the serialized state of this message. 
+Returns the serialized state of this message.
 
 This is usually used for passing C<Net::AS2::Message> to another process for sending ASYNC MDN.
 
@@ -231,7 +231,7 @@ sub serialized_state {
         $self->{mic_alg} // 'sha1',
         $self->{async_url} // '',
         $self->{should_mdn_sign} // '',
-        $self->{status_text} // '', 
+        $self->{status_text} // '',
         $self->{plain_text} // ''
     );
 }
@@ -251,7 +251,7 @@ sub notification_options_check
         }
         if (lc($key) eq 'signed-receipt-micalg') {
             foreach my $value (@values) {
-                return 'requested MIC algorithm is not supported' 
+                return 'requested MIC algorithm is not supported'
                     unless $value =~ qr{^sha-?(?:1|224|256|384|512)$};
             }
         }
