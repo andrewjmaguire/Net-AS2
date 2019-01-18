@@ -1,12 +1,12 @@
 {
    "abstract" : "AS2 Protocol implementation (RFC 4130) used in Electronic Data Exchange (EDI)",
    "author" : [
-      "Sam Wong <sam@hellosam.net>"
+      "Andrew Maguire <ajm@cpan.org>"
    ],
    "dynamic_config" : 1,
    "generated_by" : "ExtUtils::MakeMaker version 7.24, CPAN::Meta::Converter version 2.150010",
    "license" : [
-      "unknown"
+      "perl_5"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
