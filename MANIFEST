@@ -2,6 +2,7 @@ lib/Net/AS2.pm
 lib/Net/AS2/FAQ.pm
 lib/Net/AS2/MDN.pm
 lib/Net/AS2/Message.pm
+Changes
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP

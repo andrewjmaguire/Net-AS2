@@ -2,6 +2,8 @@ package Net::AS2;
 use strict;
 use warnings qw(all);
 
+our $VERSION = '0.1';
+
 =head1 NAME
 
 Net::AS2 - AS2 Protocol implementation (RFC 4130) used in Electronic Data Exchange (EDI)
@@ -100,8 +102,6 @@ use MIME::Entity;
 use Sys::Hostname;
 
 my $crlf = "\x0d\x0a";
-
-our $VERSION = "0.03";
 
 =head2 Constructor
 
