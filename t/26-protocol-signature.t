@@ -5,22 +5,31 @@ use strict;
 use warnings;
 
 use Encode;
-use HTTP::Response;
+
+use File::Basename qw(dirname);
+
 use_ok('Net::AS2');
+my $cert_dir = dirname(__FILE__);
 
 my %config_1 = (
-    MyId => 'Mr 1', MyKey => key(1), MyCertificate => cert(1),
-    PartnerId => 'Mr 2', PartnerCertificate => cert(2),
-    PartnerUrl => 'http://example.com/dummy/a_2/msg');
+    CertificateDirectory => $cert_dir,
+    MyId => 'Mr 1', MyKeyFile => 'test.1.key', MyCertificateFile => 'test.1.cert',
+    PartnerId => 'Mr 2', PartnerCertificateFile => 'test.2.cert',
+    PartnerUrl => 'http://example.com/dummy/a_2/msg',
+    UserAgentClass => 'Mock::LWP::UserAgent',
+);
 
 my %config_2 = (
-    MyId => 'Mr 2', MyKey => key(2), MyCertificate => cert(2),
-    PartnerId => 'Mr 1', PartnerCertificate => cert(1),
-    PartnerUrl => 'http://example.com/dummy/a_1/msg');
+    CertificateDirectory => $cert_dir,
+    MyId => 'Mr 2', MyKeyFile => 'test.2.key', MyCertificateFile => 'test.2.cert',
+    PartnerId => 'Mr 1', PartnerCertificateFile => 'test.1.cert',
+    PartnerUrl => 'http://example.com/dummy/a_1/msg',
+    UserAgentClass => 'Mock::LWP::UserAgent',
+);
 
 subtest 'Signature required check' => sub {
-    my $a1 = Mock::Net::AS2->new(%config_1, Mdn => 'sync', Signature => 0);
-    my $a2 = Mock::Net::AS2->new(%config_2);
+    my $a1 = Net::AS2->new(%config_1, Mdn => 'sync', Signature => 0);
+    my $a2 = Net::AS2->new(%config_2);
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
@@ -36,8 +45,8 @@ subtest 'Signature required check' => sub {
 };
 
 subtest 'Signature optional pass' => sub {
-    my $a1 = Mock::Net::AS2->new(%config_1, Mdn => 'sync');
-    my $a2 = Mock::Net::AS2->new(%config_2, Signature => 0);
+    my $a1 = Net::AS2->new(%config_1, Mdn => 'sync');
+    my $a2 = Net::AS2->new(%config_2, Signature => 0);
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
@@ -51,8 +60,8 @@ subtest 'Signature optional pass' => sub {
 };
 
 subtest 'Signature failed' => sub {
-    my $a1 = Mock::Net::AS2->new(%config_1, Encryption => 0);
-    my $a2 = Mock::Net::AS2->new(%config_1,
+    my $a1 = Net::AS2->new(%config_1, Encryption => 0);
+    my $a2 = Net::AS2->new(%config_1,
         MyId => $config_2{MyId}, PartnerId => $config_2{PartnerId},
         Encryption => 0);
 
@@ -68,23 +77,6 @@ subtest 'Signature failed' => sub {
     };
     $a1->send("Test", 'Type' => 'text/plain');
 };
-
-
-sub key {
-    my $i = shift;
-
-    local $/;
-    open my $fh, '<', "t/test.$i.key";
-    return <$fh>;
-}
-
-sub cert {
-    my $i = shift;
-
-    local $/;
-    open my $fh, '<', "t/test.$i.cert";
-    return <$fh>;
-}
 
 sub extract_headers
 {
@@ -102,16 +94,11 @@ sub extract_headers
     };
 }
 
-package Mock::Net::AS2;
-use base 'Net::AS2';
-
-sub create_useragent
-{
-    return new Mock::LWP::UserAgent;
-}
-
 package Mock::LWP::UserAgent;
-use base 'LWP::UserAgent';
+
+use parent 'LWP::UserAgent';
+
+use HTTP::Response;
 
 our $response_handler;
 our $last_request;

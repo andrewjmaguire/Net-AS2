@@ -88,8 +88,10 @@ The certificates could be self-signed.
 
 =cut
 
+use Net::AS2::HTTP;
 use Net::AS2::MDN;
 use Net::AS2::Message;
+
 use Carp;
 use Crypt::SMIME;
 use LWP::UserAgent;
@@ -350,11 +352,7 @@ sub _validations
         $self->{Digest} = Digest::SHA->new(1);
     }
 
-    my $ua_class = $self->{UserAgentClass} //= "Net::AS2::HTTP";
-
-    $ua_class .= '.pm';
-    $ua_class =~ s{::}{/}g;
-    require $ua_class;
+    $self->{UserAgentClass} //= "Net::AS2::HTTP";
 
     $self->create_useragent() or croak "cannot create $self->{UserAgentClass}";
 }
@@ -390,12 +388,12 @@ sub _setup {
 sub _read_pattern {
     my ($self, $key_file, $regex) = @_;
 
-    my $pattern = $self->{$key_file};
+    my $pattern = $self->{$key_file} // '';
 
     # get latest matching file pattern
     my ($file) = reverse sort glob($self->{CertificateDirectory} . '/' . $pattern);
 
-    croak "No file matching '$pattern'" unless $file;
+    croak "No file matching '$pattern'" unless -f $file;
 
     croak "'$key_file' file pattern '$pattern' does not match its expected regex" if $pattern !~ $regex;
 

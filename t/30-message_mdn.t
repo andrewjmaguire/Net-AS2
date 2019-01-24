@@ -16,7 +16,7 @@ my $mic = 'TESTBASE64++=';
 my $data = "测试\x01\x02\r\nGood";
 
 my $msg_success = Net::AS2::Message->new($original_message_id, $async_url, 1, $mic, $data, 'sha1');
-my $msg_error = Net::AS2::Message->create_error_message($original_message_id, $async_url, 0, 'error-status', 'error-plain');
+my $msg_error   = Net::AS2::Message->create_error_message($original_message_id, $async_url, 0, 'error-status', 'error-plain');
 my $msg_failure = Net::AS2::Message->create_failure_message($original_message_id, undef, 1, 'failure-status', 'failure-plain');
 
 sub check_pair {
