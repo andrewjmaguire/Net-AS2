@@ -7,10 +7,11 @@ Net::AS2::HTTPS - UserAgent used for sending AS2 requests over HTTPS.
 =head1 SYNOPSIS
 
     my $as2 = Net::AS2->new(
-            UserAgentClass => 'Net::AS2::HTTPS',
-            SSLOptions     => {
-                ...
-            }
+        ...,
+        UserAgentClass => 'Net::AS2::HTTPS',
+        SSLOptions     => {
+            ...
+        }
     );
 
 =head1 DESCRIPTION
@@ -32,14 +33,16 @@ use Carp;
 
 use parent 'Net::AS2::HTTP';
 
-=head2 Subclassable Methods
+=head1 METHODS
 
-=head3 options ( opts )
+=over 4
+
+=item options ( opts )
+
+A subclassed method that uses the C<SSLOptions> AS2 configuration
+option to configure the User Agent to use HTTPS.
 
 =cut
-
-# For debugging SSL
-# $IO::Socket::SSL::DEBUG = 2;
 
 sub options {
     my ($class, $opts) = @_;
@@ -52,6 +55,8 @@ sub options {
 
     return @options;
 }
+
+=back
 
 =head1 PREREQUISITES
 

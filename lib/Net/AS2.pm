@@ -243,21 +243,27 @@ The preferred MDN method - C<sync> or C<async>. The default is C<sync>.
 =item MdnAsyncUrl
 
 I<Required if Mdn is async>.
-The Url where the parten should send the async MDN to.
+The URL where the async MDN should be sent back to the partner.
+
+=item UserAgentClass
+
+I<Optional.>
+The class used to create the User Agent object.
+If not given, it will default to L<Net::AS2::HTTP>.
 
 =item Timeout
 
 I<Optional.>
 The timeout in seconds for HTTP communication. The default is 30.
 
-This is passed to LWP::UserAgent.
+This option is passed to C<UserAgentClass>.
 
 =item UserAgent
 
 I<Optional.>
 User Agent name used in HTTP communication.
 
-This is passed to LWP::UserAgent.
+This option is passed to C<UserAgentClass>.
 
 =back
 
@@ -359,18 +365,14 @@ sub _validations
     $self->create_useragent() or croak "cannot create $self->{UserAgentClass}";
 }
 
-=head3 _setup ( prefix, postfix, file_regexp )
-
-Internal routine that configures the private key(s) and certificates
-from the options that are passed in.
-
-The 'File' options allow for a glob pattern to be given.
-
-If multiple files match the pattern, the last matching file in a
-sorted list is used. This is to allow for file names containing dates
-that indicate their start and expiry dates.
-
-=cut
+# Internal routine that configures the private key(s) and certificates
+# from the options that are passed in.
+#
+# The 'File' options allow for a glob pattern to be given.
+#
+# If multiple files match the pattern, the last matching file in a
+# sorted list is used. This is to allow for file names containing dates
+# that indicate their start and expiry dates.
 
 sub _setup {
     my ($self, $prefix, $postfix, $regexp) = @_;
@@ -544,7 +546,6 @@ sub decode_message
 
 =item $mdn = $as2->decode_mdn($headers, $content)
 
-I<Instance method.>
 Decode the incoming HTTP request as AS2 MDN.
 
 C<$headers> is an L<HTTP::Headers> compatible object.
@@ -686,7 +687,7 @@ sub send_async_mdn
 
 =item ($mdn, $mic) = $as2->send($data, %MIMEHEADERS)
 
-Send a message to the partner. Returns a C<Net::AS2::MDN> object and calculated SHA Digest MIC.
+Send a message to the partner. Returns a C<Net::AS2::MDN> object and the calculated SHA Digest MIC.
 
 The data should be encoded (or assumed to be UTF-8 encoded).
 
@@ -804,16 +805,12 @@ sub _send_preprocess
     return (\@header, $payload, $mic, $mic_alg);
 }
 
-=over 4
-
 =item $as2->create_useragent()
 
 This returns an object for handling requests.
 
 It is configured via the C<UserAgentClass> option.
 It defaults to L<Net::AS2::HTTP>.
-
-=back
 
 =cut
 
@@ -957,8 +954,8 @@ Source code is maintained here at L<https://github.com/sam0737/perl-net-as2>. Pa
 =head1 COPYRIGHT AND LICENSE
 
 This software is copyright (c) 2012 by Sam Wong.
-This software is copyright (c) 2019 Enrolment Services, New Zealand Electoral Commission.
 
+This software is copyright (c) 2019 by Catalyst IT.
 Additional contributions by Andrew Maguire <ajm@cpan.org>
 
 This is free software; you can redistribute it and/or modify it under the same terms as the Perl 5 programming language system itself.

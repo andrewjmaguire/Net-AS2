@@ -7,7 +7,8 @@ Net::AS2::HTTP - UserAgent used for sending AS2 requests over HTTP.
 =head1 SYNOPSIS
 
     my $as2 = Net::AS2->new(
-            UserAgentClass => 'Net::AS2::HTTP',
+        ...,
+        UserAgentClass => 'Net::AS2::HTTP',
     );
 
 =head1 DESCRIPTION
@@ -16,7 +17,7 @@ This is a class for sending AS2 (RFC-4130) communication over HTTP.
 
 It is a subclass of L<LWP::UserAgent>.
 
-=head1 PUBLIC INTERFACE
+=head1 METHODS
 
 =cut
 
@@ -27,9 +28,9 @@ use Carp;
 
 use parent 'LWP::UserAgent';
 
-=head2 Subclassable Methods
+=over 4
 
-=head3 new ( opts )
+=item new ( opts )
 
 Create a User Agent configured with the given C<opts> hash ref.
 The C<opts> hash ref is passed to the C<options()> method which returns
@@ -45,7 +46,7 @@ sub new {
     return $class->SUPER::new(@options);
 }
 
-=head3 options ( opts )
+=item options ( opts )
 
 The given C<opts> hash ref is validated by this method.
 
@@ -68,5 +69,9 @@ sub options {
         timeout => $timeout,
     );
 }
+
+=back
+
+=cut
 
 1;

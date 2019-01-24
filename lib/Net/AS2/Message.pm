@@ -16,13 +16,17 @@ Net::AS2::Message - AS2 incoming message
 
 =head1 PUBLIC INTERFACE
 
+=head2 Constructors
+
 =cut
 
 use Carp;
 
 my $crlf = "\x0d\x0a";
 
-=head2 Net::AS2::Message->new($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
+=over 4
+
+=item Net::AS2::Message->new($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
 
 Create a new AS2 message.
 
@@ -40,7 +44,7 @@ sub new
     return $self;
 }
 
-=head2 Net::AS2::Message->create_error_message($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
+=item Net::AS2::Message->create_error_message($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
 
 Create a new AS2 'error' message.
 
@@ -53,7 +57,7 @@ sub create_error_message
     return $self;
 }
 
-=head2 Net::AS2::Message->create_failure_message($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
+=item Net::AS2::Message->create_failure_message($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
 
 Create a new AS2 'failure' message.
 
@@ -80,10 +84,6 @@ sub _create_message
     bless ($self, $class);
     return $self;
 }
-
-=head2 Constructor
-
-=over 4
 
 =item $msg = Net::AS2::Message->create_from_serialized_state($state)
 
@@ -254,7 +254,11 @@ sub serialized_state {
     );
 }
 
-=head2 notification_options_check ($option)
+=head2 Functions
+
+=over 4
+
+=item notification_options_check ($option)
 
 Check if Disposition Notification Options are supported.
 
@@ -285,6 +289,8 @@ sub notification_options_check
 }
 
 1;
+
+=back
 
 =head1 SEE ALSO
 
