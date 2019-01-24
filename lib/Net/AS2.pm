@@ -261,6 +261,8 @@ This is passed to LWP::UserAgent.
 
 =back
 
+=back
+
 =cut
 
 sub new
@@ -407,8 +409,6 @@ sub _read_file {
     local($/) = undef;
     return scalar(<$fh>);
 }
-
-=back
 
 =head2 Methods
 
@@ -813,6 +813,8 @@ This returns an object for handling requests.
 It is configured via the C<UserAgentClass> option.
 It defaults to L<Net::AS2::HTTP>.
 
+=back
+
 =cut
 
 sub create_useragent
@@ -884,7 +886,7 @@ sub _parse_as2_id {
         $as2_id =~ s/\\(\\|")/$1/g;
         return $as2_id;
     }
-    return undef;
+    return;
 }
 
 sub _encode_as2_id {

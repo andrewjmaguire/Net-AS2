@@ -51,3 +51,11 @@ Ditto for keys
 =head1 SEE ALSO
 
 L<Net::AS2>
+
+=cut
+
+package Net::AS2::FAQ;
+
+use strict;
+
+1;

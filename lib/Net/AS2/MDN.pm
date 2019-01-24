@@ -164,6 +164,12 @@ sub _create_from_message
     return bless ($self, ref($class) || $class);
 }
 
+=item $mdn->parse_mdn($content)
+
+Parses the given content as an MDN.
+
+=cut
+
 sub parse_mdn
 {
     my ($class, $content) = @_;
@@ -176,16 +182,28 @@ sub parse_mdn
     return $self;
 }
 
+=item $mdn = Net::AS2::MDN->create_error_mdn($reason)
+
+Create an 'error' C<Net::AS2::MDN> with the status text of C<$reason>.
+
+=cut
+
 sub create_error_mdn
 {
     my ($class, $reason) = @_;
 
     $class = ref($class) || $class;
-    my $self = { unparsable => 1, status_text => $reason };
+    my $self = { error => 1, status_text => $reason };
     bless ($self, $class);
 
     return $self;
 }
+
+=item $mdn = Net::AS2::MDN->create_unparsable_mdn($reason)
+
+Create an 'unparsable' C<Net::AS2::MDN> with the status text of C<$reason>.
+
+=cut
 
 sub create_unparsable_mdn
 {
@@ -309,7 +327,7 @@ The MDN will be marked C<is_error> if the MICs do not match.
 sub match_mic
 {
     my ($self, $hash, $alg) = @_;
-    return undef if !$self->is_success;
+    return if !$self->is_success;
     unless (
         defined $self->{mic_hash} &&
         defined $hash && defined $alg &&

@@ -22,6 +22,12 @@ use Carp;
 
 my $crlf = "\x0d\x0a";
 
+=head2 Net::AS2::Message->new($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
+
+Create a new AS2 message.
+
+=cut
+
 sub new
 {
     my ($class, $message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg) = @_;
@@ -34,12 +40,24 @@ sub new
     return $self;
 }
 
+=head2 Net::AS2::Message->create_error_message($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
+
+Create a new AS2 'error' message.
+
+=cut
+
 sub create_error_message
 {
     my $self = _create_message(@_);
     $self->{error} = 1;
     return $self;
 }
+
+=head2 Net::AS2::Message->create_failure_message($message_id, $async_url, $should_mdn_sign, $mic, $content, $mic_alg)
+
+Create a new AS2 'failure' message.
+
+=cut
 
 sub create_failure_message
 {
@@ -217,6 +235,8 @@ Returns the serialized state of this message.
 
 This is usually used for passing C<Net::AS2::Message> to another process for sending ASYNC MDN.
 
+=back
+
 =cut
 
 sub serialized_state {
@@ -234,7 +254,14 @@ sub serialized_state {
     );
 }
 
-# Check if notification options are supported
+=head2 notification_options_check ($option)
+
+Check if Disposition Notification Options are supported.
+
+Returns a string describing the unsupported option, if any.
+
+=cut
+
 sub notification_options_check
 {
     my ($options) = @_;
@@ -254,12 +281,10 @@ sub notification_options_check
             }
         }
     }
-    return undef;
+    return;
 }
 
 1;
-
-=back
 
 =head1 SEE ALSO
 
