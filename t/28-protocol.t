@@ -6,6 +6,7 @@ use warnings;
 
 use Encode;
 use HTTP::Response;
+use HTTP::Headers;
 
 use File::Basename qw(dirname);
 
@@ -32,7 +33,7 @@ my %config_2 = (
 subtest 'Missing headers' => sub {
     my $a1 = Net::AS2->new(%config_1);
 
-    my $msg = $a1->decode_message({}, '');
+    my $msg = $a1->decode_message(HTTP::Headers->new(), '');
     ok($msg->is_error, 'Message received with error');
     is($msg->error_status_text, 'unexpected-processing-error');
     ok($msg->error_plain_text =~ /headers/i);
@@ -44,7 +45,7 @@ subtest 'Mismatch AS2 Id' => sub {
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
-        my $msg = $a2->decode_message(extract_headers($req), $req->content);
+        my $msg = $a2->decode_message($req->headers, $req->content);
         ok($msg->is_error, 'Message received with error');
         is($msg->error_status_text, 'authentication-failed');
         ok($msg->error_plain_text =~ /AS2-/i);
@@ -63,7 +64,7 @@ subtest 'Async MDN' => sub {
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
-        my $mdn = $a1->decode_mdn(extract_headers($req), $req->content);
+        my $mdn = $a1->decode_mdn($req->headers, $req->content);
         ok($mdn->match_mic('mic', 'sha1'));
         ok($mdn->is_success, 'Message received with error');
         is($mdn->original_message_id, 'orig-id');
@@ -77,25 +78,10 @@ subtest 'Async MDN' => sub {
 subtest 'Async MDN Unparsable' => sub {
     my $a1 = Net::AS2->new(%config_1);
 
-    my $mdn = $a1->decode_mdn({}, '');
+    my $mdn = $a1->decode_mdn(HTTP::Headers->new(), '');
     ok($mdn->is_unparsable, 'Message received with error');
 };
 
-sub extract_headers
-{
-    my $req = shift;
-    return
-    {
-        map {
-            my $key = uc($_);
-            $key =~ s/-/_/g;
-            $key = 'HTTP_' . $key
-                unless $key eq 'CONTENT_TYPE';
-
-            ( $key => $req->header($_) )
-        } ($req->header_field_names)
-    };
-}
 
 package Mock::LWP::UserAgent;
 

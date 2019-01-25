@@ -33,7 +33,7 @@ subtest 'Signature required check' => sub {
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
-        my $msg = $a2->decode_message(extract_headers($req), $req->content);
+        my $msg = $a2->decode_message($req->headers, $req->content);
         ok($msg->is_error, 'Message received with error');
         is($msg->error_status_text, 'insufficient-message-security');
         ok($msg->error_plain_text =~ /signature/i);
@@ -50,7 +50,7 @@ subtest 'Signature optional pass' => sub {
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
-        my $msg = $a2->decode_message(extract_headers($req), $req->content);
+        my $msg = $a2->decode_message($req->headers, $req->content);
         ok($msg->is_success, 'Message received successfully');
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
@@ -67,7 +67,7 @@ subtest 'Signature failed' => sub {
 
     local $Mock::LWP::UserAgent::response_handler = sub {
         my $req = shift;
-        my $msg = $a2->decode_message(extract_headers($req), $req->content);
+        my $msg = $a2->decode_message($req->headers, $req->content);
         ok($msg->is_error, 'Message received with error');
         is($msg->error_status_text, 'insufficient-message-security');
         ok($msg->error_plain_text =~ /unable to verify/i);
@@ -78,21 +78,6 @@ subtest 'Signature failed' => sub {
     $a1->send("Test", 'Type' => 'text/plain');
 };
 
-sub extract_headers
-{
-    my $req = shift;
-    return
-    {
-        map {
-            my $key = uc($_);
-            $key =~ s/-/_/g;
-            $key = 'HTTP_' . $key
-                unless $key eq 'CONTENT_TYPE';
-
-            ( $key => $req->header($_) )
-        } ($req->header_field_names)
-    };
-}
 
 package Mock::LWP::UserAgent;
 

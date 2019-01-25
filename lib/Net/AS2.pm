@@ -418,8 +418,8 @@ sub _read_file {
 
 Decode the incoming HTTP request as AS2 Message.
 
-Headers is an hash ref and should be supplied in PSGI format, or C<\%ENV> in CGI mode.
-Content is the raw POST body of the request.
+C<$headers> is an L<HTTP::Headers> compatible object.
+C<$content> is the raw POST body of the request.
 
 This method always returns a C<Net::AS2::Message> object and never dies.
 The message could be successfully parsed, or contains corresponding error message.
@@ -435,13 +435,13 @@ this is out of topic.
 sub decode_message
 {
     my ($self, $headers, $content) = @_;
-    croak "headers must be an hash reference"
-        unless ref $headers eq 'HASH';
-    croak "content is undefined"
+    croak 'headers must be an HTTP::Headers compatible object'
+        unless UNIVERSAL::can($headers, 'header_field_names');
+    croak 'content is undefined'
         unless defined $content;
 
-    my $message_id = $headers->{HTTP_MESSAGE_ID};
-    my $async_url = $headers->{HTTP_RECEIPT_DELIVERY_OPTION};
+    my $message_id = $headers->header('Message-Id');
+    my $async_url  = $headers->header('Receipt-Delivery-Option');
     my @new_prefix = ($message_id, $async_url, 0);
 
     unless (!defined $async_url || $async_url =~ m{^https?://}) {
@@ -449,42 +449,39 @@ sub decode_message
         return Net::AS2::Message->create_failure_message(@new_prefix, 'Async transport other than http/https is not supported');
     }
 
-    if ($headers->{HTTP_DISPOSITION_NOTIFICATION_OPTIONS}) {
-        my $status = Net::AS2::Message::notification_options_check($headers->{HTTP_DISPOSITION_NOTIFICATION_OPTIONS});
+    if (my $options = $headers->header('Disposition-Notification-Options')) {
+        my $status = Net::AS2::Message::notification_options_check($options);
         return Net::AS2::Message->create_failure_message(@new_prefix, $status)
             if defined $status;
         $new_prefix[2] = 1;
     }
 
+    my $content_type = $headers->content_type;
+    my $version      = $headers->header('AS2-Version');
+    my $from         = $headers->header('AS2-From');
+    my $to           = $headers->header('AS2-To');
+
     unless (
-        defined $headers->{CONTENT_TYPE} &&
-        defined $headers->{HTTP_MESSAGE_ID} &&
-        defined $headers->{HTTP_AS2_VERSION} &&
-        defined $headers->{HTTP_AS2_FROM} &&
-        defined $headers->{HTTP_AS2_TO})
+        defined $content_type &&
+        defined $message_id   &&
+        defined $version &&
+        defined $from &&
+        defined $to)
     {
         return Net::AS2::Message->create_error_message(@new_prefix, 'unexpected-processing-error', 'Malformed AS2 Message, crucial headers are missing.');
     }
 
     if (
-        _parse_as2_id($headers->{HTTP_AS2_FROM}) ne $self->{PartnerId} ||
-        _parse_as2_id($headers->{HTTP_AS2_TO}) ne $self->{MyId}
+        _parse_as2_id($from) ne $self->{PartnerId} ||
+        _parse_as2_id($to)   ne $self->{MyId}
     ) {
         return Net::AS2::Message->create_error_message(@new_prefix, 'authentication-failed', 'AS2-From or AS2-To is not expected');
     }
 
     my $is_content_raw = 1;
 
-    my $raw_content = $content;
-    my $merged_headers =
-        join($crlf, map {
-            if (/^HTTP_/ || /^CONTENT_TYPE$/) {
-                my $key = $_;
-                $key =~ s/^HTTP_//;
-                $key =~ s/_/-/g;
-                "$key: ". $headers->{$_};
-            } else { (); }
-        } keys %{$headers}) . "$crlf$crlf";
+    my $raw_content    = $content;
+    my $merged_headers = $headers->as_string($crlf) . $crlf;
 
     if ($self->{_smime_enc}->isEncrypted($merged_headers . $content))
     {
@@ -550,8 +547,8 @@ sub decode_message
 I<Instance method.>
 Decode the incoming HTTP request as AS2 MDN.
 
-Headers is an hash ref and should be supplied in PSGI format, or C<\%ENV> in CGI mode.
-Content is the raw POST body of the request.
+C<$headers> is an L<HTTP::Headers> compatible object.
+C<$content> is the raw POST body of the request.
 
 This method always returns a C<Net::AS2::MDN> object and never dies.
 The MDN could be successfully parsed, or contains unparsable error details
@@ -566,37 +563,35 @@ of the MIC.
 sub decode_mdn
 {
     my ($self, $headers, $content) = @_;
-    croak "headers must be an hash reference"
-        unless ref $headers eq 'HASH';
+    croak 'headers must be an HTTP::Headers compatible object'
+        unless UNIVERSAL::can($headers, 'header_field_names');
     croak "content is undefined"
         unless defined $content;
 
+    my $content_type = $headers->content_type;
+    my $message_id   = $headers->header('Message-Id');
+    my $version      = $headers->header('AS2-Version');
+    my $from         = $headers->header('AS2-From');
+    my $to           = $headers->header('AS2-To');
+
     unless (
-        defined $headers->{CONTENT_TYPE} &&
-        defined $headers->{HTTP_MESSAGE_ID} &&
-        defined $headers->{HTTP_AS2_VERSION} &&
-        defined $headers->{HTTP_AS2_FROM} &&
-        defined $headers->{HTTP_AS2_TO})
+        defined $content_type &&
+        defined $message_id   &&
+        defined $version &&
+        defined $from &&
+        defined $to)
     {
         return Net::AS2::MDN->create_unparsable_mdn('Malformed AS2 MDN, crucial headers are missing.')
     }
 
     if (
-        _parse_as2_id($headers->{HTTP_AS2_FROM}) ne $self->{PartnerId} ||
-        _parse_as2_id($headers->{HTTP_AS2_TO}) ne $self->{MyId}
+        _parse_as2_id($from) ne $self->{PartnerId} ||
+        _parse_as2_id($to)   ne $self->{MyId}
     ) {
         return Net::AS2::MDN->create_unparsable_mdn('AS2-From or AS2-To is not expected')
     }
 
-    my $merged_headers =
-        join($crlf, map {
-            if (/^HTTP_/ || /^CONTENT_TYPE$/) {
-                my $key = $_;
-                $key =~ s/^HTTP_//;
-                $key =~ s/_/-/g;
-                "$key: ". $headers->{$_};
-            } else { (); }
-        } keys %{$headers}) . "$crlf$crlf";
+    my $merged_headers = $headers->as_string($crlf) . $crlf;
 
     $content =
         $merged_headers .
