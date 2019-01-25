@@ -1,6 +1,6 @@
 package Net::AS2::MDN;
 use strict;
-use warnings qw(all);
+use warnings;
 
 =head1 NAME
 

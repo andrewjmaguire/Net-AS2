@@ -1,6 +1,6 @@
 package Net::AS2::Message;
 use strict;
-use warnings qw(all);
+use warnings;
 
 =head1 NAME
 
@@ -276,12 +276,12 @@ sub notification_options_check
 
         if (lc($key) eq 'signed-receipt-protocol') {
             return 'requested MDN protocol is not supported'
-		unless grep { $_ eq 'pkcs7-signature' } @values;
+              unless grep { $_ eq 'pkcs7-signature' } @values;
         }
         if (lc($key) eq 'signed-receipt-micalg') {
             foreach my $value (@values) {
                 return 'requested MIC algorithm is not supported'
-                    unless $value =~ qr{^sha-?(?:1|224|256|384|512)$};
+                  unless $value =~ qr{^sha-?(?:1|224|256|384|512)$};
             }
         }
     }

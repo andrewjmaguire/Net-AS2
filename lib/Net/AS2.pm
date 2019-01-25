@@ -1,8 +1,6 @@
 package Net::AS2;
 use strict;
-use warnings qw(all);
-
-our $VERSION = '0.9';
+use warnings;
 
 =head1 NAME
 
@@ -775,20 +773,20 @@ sub _send_preprocess
     foreach my $line (split(/$crlf/, $header))
     {
         if ($line =~ m/^([^:]+):\s*(.*)/) {
-			my ($key, $value) = ($1, $2);
+            my ($key, $value) = ($1, $2);
             push @header, ($prev_head => $prev_value)
-                if defined $prev_head;
+              if defined $prev_head;
             if (lc($key) eq 'content-type') {
                 $value =~ s{application/x-pkcs7}{application/pkcs7};
             } elsif (lc($key) eq 'content-transfer-encoding') {
                 $is_base64 = 1 if lc($value) eq 'base64';
                 $key = undef;
             }
-			$prev_head = $key;
+            $prev_head = $key;
             $prev_value = $value;
-		} elsif (defined $prev_head) {
+        } elsif (defined $prev_head) {
             $prev_value .= " $line";
-		}
+        }
     }
     push @header, ($prev_head => $prev_value)
         if defined $prev_head;
