@@ -39,7 +39,7 @@ my $test_async = sub {
     ok($mdn_temp->is_unparsable, 'ASYNC data unparsable');
     my $req = $Mock::LWP::UserAgent::last_request;
 
-    my $msg = $a2->decode_message($req->headers, $req->content);
+    my $msg = $a2->decode_message(extract_headers($req), $req->content);
 
     ok($msg->is_success, 'Message received successfully');
     ok($msg->is_mdn_async, 'MDN is async');
@@ -50,7 +50,7 @@ my $test_async = sub {
     $a2->send_async_mdn(Net::AS2::MDN->create_success($msg));
 
     my $mdn_req = $Mock::LWP::UserAgent::last_request;
-    my $mdn = $a1->decode_mdn($mdn_req->headers, $mdn_req->content);
+    my $mdn = $a1->decode_mdn(extract_headers($mdn_req), $mdn_req->content);
     ok($mdn->is_success, 'MDN is success');
     ok($mdn->match_mic($mic1, $mic1_alg), 'MDN MIC matches');
     is($mdn->original_message_id, $message_id, 'MDN message id matches');
@@ -77,6 +77,21 @@ sub cert {
     return <$fh>;
 }
 
+sub extract_headers
+{
+    my $req = shift;
+    return
+    {
+        map {
+            my $key = uc($_);
+            $key =~ s/-/_/g;
+            $key = 'HTTP_' . $key
+                unless $key eq 'CONTENT_TYPE';
+
+            ( $key => $req->header($_) )
+        } ($req->header_field_names)
+    };
+}
 
 package Mock::Net::AS2;
 use base 'Net::AS2';

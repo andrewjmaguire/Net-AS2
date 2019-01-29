@@ -95,6 +95,7 @@ use Net::AS2::Message;
 use Carp;
 use Crypt::SMIME;
 use LWP::UserAgent;
+use HTTP::Headers;
 use HTTP::Request;
 use Digest::SHA;
 use MIME::Base64;
@@ -420,7 +421,8 @@ sub _read_file {
 
 Decode the incoming HTTP request as AS2 Message.
 
-C<$headers> is an L<HTTP::Headers> compatible object.
+C<$headers> is either an L<HTTP::Headers> compatible object or a hash
+ref supplied in PSGI format, or C<\%ENV> in CGI mode.
 C<$content> is the raw POST body of the request.
 
 This method always returns a C<Net::AS2::Message> object and never dies.
@@ -437,6 +439,9 @@ this is out of topic.
 sub decode_message
 {
     my ($self, $headers, $content) = @_;
+
+    $headers = $self->_http_headers($headers) if ref($headers) eq 'HASH';
+
     croak 'headers must be an HTTP::Headers compatible object'
         unless UNIVERSAL::can($headers, 'header_field_names');
     croak 'content is undefined'
@@ -548,7 +553,8 @@ sub decode_message
 
 Decode the incoming HTTP request as AS2 MDN.
 
-C<$headers> is an L<HTTP::Headers> compatible object.
+C<$headers> is either an L<HTTP::Headers> compatible object or a hash
+ref supplied in PSGI format, or C<\%ENV> in CGI mode.
 C<$content> is the raw POST body of the request.
 
 This method always returns a C<Net::AS2::MDN> object and never dies.
@@ -564,6 +570,8 @@ of the MIC.
 sub decode_mdn
 {
     my ($self, $headers, $content) = @_;
+
+    $headers = $self->_http_headers($headers) if ref($headers) eq 'HASH';
     croak 'headers must be an HTTP::Headers compatible object'
         unless UNIVERSAL::can($headers, 'header_field_names');
     croak "content is undefined"
@@ -926,6 +934,25 @@ sub _base64_digest {
 
     # = is required for padding the base64 string.
     return $self->{Digest}->b64digest() . '=';
+}
+
+sub _http_headers {
+    my ($self, $headers) = @_;
+
+    my $http_headers = HTTP::Headers->new();
+
+    $http_headers->content_type($headers->{CONTENT_TYPE});
+
+    foreach (keys %$headers) {
+        next unless /^HTTP_/;
+        my $value = $headers->{$_};
+        my $key = $_;
+        $key =~ s/^HTTP_//;
+        $key =~ s/_/-/g;
+        $http_headers->header($key => $value);
+    }
+
+    return $http_headers;
 }
 
 1;
