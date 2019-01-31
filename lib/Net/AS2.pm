@@ -930,8 +930,14 @@ sub _base64_digest {
 
     $self->{Digest}->add($content);
 
-    # = is required for padding the base64 string.
-    return $self->{Digest}->b64digest() . '=';
+    my $digest = $self->{Digest}->b64digest();
+
+    # pad the base64 string
+    while (length($digest) % 4) {
+        $digest .= '=';
+    }
+			
+    return $digest;
 }
 
 sub _http_headers {
