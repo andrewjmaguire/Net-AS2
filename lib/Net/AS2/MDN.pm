@@ -322,24 +322,31 @@ The MDN will be marked C<is_error> if the MICs do not match.
         # still success after comparing mic
     }
 
+Returns 1 if MICs do match, 0 otherwise.
+
 =cut
 
 sub match_mic
 {
     my ($self, $hash, $alg) = @_;
-    return if !$self->is_success;
-    unless (
-        defined $self->{mic_hash} &&
+
+    return 0 unless $self->is_success;
+
+    if (
         defined $hash && defined $alg &&
+        defined $self->{mic_hash} &&
+        defined $self->{mic_alg} &&
         $self->{mic_hash} eq $hash &&
-        $self->{mic_alg} eq $alg)
-    {
-        $self->{success} = $self->{warning} = $self->{failure} = 0;
-        $self->{error} = 1;
-        $self->{status_text} .= "; MDN MIC validation failure $self->{mic_alg} ne $alg";
-        return 0;
+        $self->{mic_alg} eq $alg
+    ) {
+        return 1;
     }
-    return 1;
+
+    $self->{success} = $self->{warning} = $self->{failure} = 0;
+    $self->{error} = 1;
+    $self->{status_text} .= "; MDN MIC validation failure $self->{mic_alg} ne $alg";
+
+    return 0;
 }
 
 =item $mdn->is_success
