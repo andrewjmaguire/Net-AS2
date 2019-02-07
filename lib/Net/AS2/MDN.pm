@@ -15,6 +15,13 @@ Net::AS2::MDN - AS2 Message Deposition Notification
         print STDERR $mdn->description;
     }
 
+
+=head1 DESCRIPTION
+
+This is a class for creating Message Deposition Notifications (MDN)
+for use in handling AS2 (RFC 4130) communication. This described in
+RFC 3798.
+
 =head1 PUBLIC INTERFACE
 
 =cut
@@ -511,4 +518,12 @@ sub as_mime
 =head1 SEE ALSO
 
 L<Net::AS2>, L<MIME::Entity>
+
+L<RFC 3798|https://www.ietf.org/rfc/rfc3798.txt>
+
+=head1 BUGS AND LIMITATIONS
+
+The Message Deposition Notification RFC 3798 is now obsolete.  It has
+been superceeded by L<RFC 8098|https://www.ietf.org/rfc/rfc8098.txt>.
+These changes have not been implemented.
 

@@ -60,9 +60,10 @@ Net::AS2 - AS2 Protocol implementation (RFC 4130) used in Electronic Data Exchan
 
 =head1 DESCRIPTION
 
-This is a class for handling AS2 (RFC-4130) communication - sending
-message (optionally sign and encrypt), decoding MDN. Receving message
-and produce corresponding MDN.
+This is a class for handling AS2 (RFC 4130) communication - sending
+message (optionally sign and encrypt), decoding Message Disposition
+Notification. Receiving message and produce corresponding Message
+Disposition Notification.
 
 =head2 Protocol Introduction
 
