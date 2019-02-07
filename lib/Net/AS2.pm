@@ -13,7 +13,9 @@ Net::AS2 - AS2 Protocol implementation (RFC 4130) used in Electronic Data Exchan
             MyId => 'alice',
             MyKey => '...RSA KEY in PEM...',
             MyCert => '...X509 Cert in PEM...'
-            PartnerId => 'bob', PartnerCert => '...X509 Cert in PEM...'
+            PartnerId => 'bob',
+            CertificateDirectory => '/etc/AS2',
+            PartnerCertFile => 'partner.certificate.file',
         );
 
     ### Sending Message (Sync MDN)
@@ -320,9 +322,9 @@ sub _validations
     croak sprintf("signature %s is not supported", $self->{Signature})
         unless !$self->{Signature} || $self->{Signature} =~ qr{^sha-?(?:1|224|256|384|512)$};
 
-    $self->_setup('My',      'Key',         qr{[.]key$});
-    $self->_setup('My',      'Certificate', qr{[.]cert?$});
-    $self->_setup('Partner', 'Certificate', qr{[.]cert?$});
+    $self->_setup('My',      'Key');
+    $self->_setup('My',      'Certificate');
+    $self->_setup('Partner', 'Certificate');
 
     delete $self->{MyKey};
     delete $self->{MyCertificate};
@@ -374,13 +376,13 @@ sub _validations
 # that indicate their start and expiry dates.
 
 sub _setup {
-    my ($self, $prefix, $postfix, $regexp) = @_;
+    my ($self, $prefix, $postfix) = @_;
 
     foreach my $type (('', 'Encryption', 'Signature')) {
         my $key_name = $prefix . $type . $postfix;
         my $key_file = $key_name . 'File';
         if (exists $self->{$key_file}) {
-            $self->{$key_name} //= $self->_read_pattern($key_file, $regexp);
+            $self->{$key_name} //= $self->_read_pattern($key_file);
         }
         next if $type eq '';
 
@@ -389,7 +391,7 @@ sub _setup {
 }
 
 sub _read_pattern {
-    my ($self, $key_file, $regex) = @_;
+    my ($self, $key_file) = @_;
 
     my $pattern = $self->{$key_file} // '';
 
@@ -397,8 +399,6 @@ sub _read_pattern {
     my ($file) = reverse sort glob($self->{CertificateDirectory} . '/' . $pattern);
 
     croak "No file matching '$pattern'" unless -f $file;
-
-    croak "'$key_file' file pattern '$pattern' does not match its expected regex" if $pattern !~ $regex;
 
     return _read_file($file);
 }
