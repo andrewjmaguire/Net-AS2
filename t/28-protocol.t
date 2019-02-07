@@ -59,6 +59,7 @@ subtest 'Mismatch AS2 Id' => sub {
 subtest 'Async MDN' => sub {
     my $a1 = Net::AS2->new(%config_1);
     my $a2 = Net::AS2->new(%config_2);
+    my $message_id = sprintf('<%s@localhost>', rand());
 
     my $msg = Net::AS2::Message->new("orig-id", "http://example.com/async_url", 1, "mic", "data", 'sha1');
 
@@ -72,7 +73,7 @@ subtest 'Async MDN' => sub {
         my $r = HTTP::Response->new(200, 'OK', [], '');
         return $r;
     };
-    $a2->send_async_mdn(Net::AS2::MDN->create_success($msg), "MDN ID");
+    $a2->send_async_mdn(Net::AS2::MDN->create_success($msg), $message_id);
 };
 
 subtest 'Async MDN Unparsable' => sub {

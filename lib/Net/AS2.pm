@@ -89,21 +89,22 @@ The certificates could be self-signed.
 
 =cut
 
+use Carp;
+use Crypt::SMIME;
+use Digest::SHA;
+use Email::Address;
+use Encode;
+use HTTP::Headers;
+use HTTP::Request;
+use LWP::UserAgent;
+use MIME::Base64;
+use MIME::Entity;
+use MIME::Parser;
+use Sys::Hostname;
+
 use Net::AS2::HTTP;
 use Net::AS2::MDN;
 use Net::AS2::Message;
-
-use Carp;
-use Crypt::SMIME;
-use LWP::UserAgent;
-use HTTP::Headers;
-use HTTP::Request;
-use Digest::SHA;
-use MIME::Base64;
-use MIME::Parser;
-use Encode;
-use MIME::Entity;
-use Sys::Hostname;
 
 my $crlf = "\x0d\x0a";
 
@@ -639,11 +640,10 @@ sub prepare_sync_mdn
 {
     my ($self, $mdn, $message_id) = @_;
 
+    $message_id = $self->get_message_id($message_id, generate => 1);
+
     $mdn->recipient($self->{MyId});
 
-    $message_id =
-        defined $message_id && $message_id =~ /@/ ? $message_id :
-        sprintf('<%s@%s>', ($message_id || time + rand()), hostname);
     my ($headers, $payload) =
         $self->_send_preprocess($mdn->as_mime->stringify, $message_id, undef, undef,
             1, $mdn->should_sign);
@@ -669,15 +669,14 @@ sub send_async_mdn
 {
     my ($self, $mdn, $message_id) = @_;
 
+    $message_id = $self->get_message_id($message_id, generate => 1);
+
     $mdn->recipient($self->{MyId});
     my $target_url = $mdn->async_url;
 
     croak "MDN async url is not defined" unless $target_url;
     croak "MDN async url is not valid" unless $target_url =~ m{^https?://};
 
-    $message_id =
-        defined $message_id && $message_id =~ /@/ ? $message_id :
-        sprintf('<%s@%s>', ($message_id || time + rand()), hostname);
     my ($headers, $payload) =
         $self->_send_preprocess($mdn->as_mime->stringify, $message_id, $target_url, undef,
             1, $mdn->should_sign);
@@ -735,10 +734,7 @@ sub send
     $mic = $self->_base64_digest($data)
         unless $self->{Signature} || $self->{Encryption};
 
-    my $message_id = $opts{MessageId} // '';
-    $message_id =
-        $message_id =~ /@/ ? $message_id :
-        sprintf('<%s@%s>', ($message_id || time + rand()), hostname);
+    my $message_id = $self->get_message_id($opts{MessageId}, generate => 1);
 
     $opts{Encoding} = 'base64';
     $opts{Disposition} //= 'attachment';
@@ -765,8 +761,6 @@ sub _send_preprocess
     }
 
     my ($header, $payload) = $data =~ /^(.*?)$crlf$crlf(.*)$/s;
-
-    $header =~ //;
 
     my @header;
     my ($prev_head, $prev_value);
@@ -826,6 +820,48 @@ sub create_useragent
     my $self = shift;
 
     return $self->{UserAgentClass}->new($self);
+}
+
+=item $id = $as2->get_message_id( $message_id, generate => ? )
+
+Returns, or generates, a message id. Any angle brackets surrounding
+the id are removed.
+
+If C<$message_id> is defined and not an empty string and conforms to
+RFC 2822, then this id is returned.
+
+If C<$message_id> is defined and not an empty string but does not conform to
+RFC 2822, then the method dies with an error message.
+
+If C<generate> is true then a basic random message ID is created
+using C<time()>, C<rand()> and C<hostname()>.
+
+If C<generate> is false (default) then the method dies with an error message.
+
+For production systems, it is strongly recommended to generate and use
+an ID using a better random generator function and pass it in to this module.
+
+=cut
+
+sub get_message_id {
+    my ($self, $message_id, %opt ) = @_;
+
+    if ($message_id) {
+        if ($message_id =~ /<?($Email::Address::addr_spec)>?/) {
+            $message_id = $1;
+        }
+        else {
+            croak "Message-Id does not conform to RFC 2822: '$message_id'";
+        }
+    }
+    elsif ($opt{generate}) {
+        $message_id = sprintf('%s@%s', (time() + rand()), hostname());
+    }
+    else {
+        croak "Message-Id is undefined, empty or can generate option is false";
+    }
+
+    return $message_id;
 }
 
 sub _send
@@ -981,7 +1017,7 @@ L<Net::AS2::HTTP>, L<Net::AS2::HTTPS>
 
 L<Net::AS2::FAQ>, L<Net::AS2::Message>, L<Net::AS2::MDN>, L<MIME::Entity>
 
-Source code is maintained here at L<https://github.com/sam0737/perl-net-as2>. Patches are welcome.
+L<RFC 4130|https://www.ietf.org/rfc/rfc4130.txt>, L<RFC 2822|https://www.ietf.org/rfc/rfc2822.txt>
 
 =head1 COPYRIGHT AND LICENSE
 

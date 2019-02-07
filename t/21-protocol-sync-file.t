@@ -38,9 +38,9 @@ my $test_async = sub {
     my $a2 = Net::AS2->new(%config_2, %{$mod});
 
     my $data = "测试\nThis is a test\r\n\x01\x02\x00";
-    my $message_id = rand . '@' . 'localhost';
+    my $message_id = sprintf('%s@localhost', rand());
 
-    my ($mdn_temp, $mic1, $mic1_alg) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => $message_id);
+    my ($mdn_temp, $mic1, $mic1_alg) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => "<$message_id>");
     ok($mdn_temp->is_unparsable, 'ASYNC data unparsable');
     my $req = $Mock::LWP::UserAgent::last_request;
 
