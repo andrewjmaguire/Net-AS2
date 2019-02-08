@@ -1,5 +1,11 @@
 package Net::AS2::HTTPS;
 
+use strict;
+use warnings;
+# VERSION
+
+use parent 'Net::AS2::HTTP';
+
 =head1 NAME
 
 Net::AS2::HTTPS - UserAgent used for sending AS2 requests over HTTPS.
@@ -26,12 +32,7 @@ L<LWP::UserAgent>.
 
 =cut
 
-use strict;
-use warnings;
-
 use Carp;
-
-use parent 'Net::AS2::HTTP';
 
 =head1 METHODS
 

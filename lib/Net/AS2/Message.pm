@@ -1,6 +1,9 @@
 package Net::AS2::Message;
+
 use strict;
 use warnings;
+
+# VERSION
 
 =head1 NAME
 
@@ -52,7 +55,8 @@ Create a new AS2 'error' message.
 
 sub create_error_message
 {
-    my $self = _create_message(@_);
+    my ($class, @args) = @_;
+    my $self = $class->_create_message(@args);
     $self->{error} = 1;
     return $self;
 }
@@ -65,7 +69,8 @@ Create a new AS2 'failure' message.
 
 sub create_failure_message
 {
-    my $self = _create_message(@_);
+    my ($class, @args) = @_;
+    my $self = $class->_create_message(@args);
     $self->{failure} = 1;
     return $self;
 }
@@ -271,7 +276,7 @@ sub notification_options_check
     my ($options) = @_;
     foreach (split(/;/, $options))
     {
-        my ($key, $value) = $_ =~ /^\s*(.+?)\s*=\s*(.+?)\s*$/;
+        my ($key, $value) = (/^\s*(.+?)\s*=\s*(.+?)\s*$/);
         my ($requireness, @values) = lc($value) =~ /\s*(.+?)\s*(?:,|$)/g;
 
         if (lc($key) eq 'signed-receipt-protocol') {

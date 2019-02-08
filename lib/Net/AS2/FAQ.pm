@@ -51,6 +51,9 @@ L<Net::AS2>
 =cut
 
 package Net::AS2::FAQ;
+
 use strict;
+use warnings;
+# VERSION
 
 1;

@@ -1,5 +1,9 @@
 package Net::AS2::HTTP;
 
+use strict;
+use warnings;
+# VERSION
+
 =head1 NAME
 
 Net::AS2::HTTP - UserAgent used for sending AS2 requests over HTTP.
@@ -21,12 +25,11 @@ It is a subclass of L<LWP::UserAgent>.
 
 =cut
 
-use strict;
-use warnings;
+use parent 'LWP::UserAgent';
 
 use Carp;
 
-use parent 'LWP::UserAgent';
+use constant TIMEOUT => 30;
 
 =over 4
 
@@ -58,7 +61,7 @@ uses to instantiate the object.
 sub options {
     my ($class, $opts) = @_;
 
-    my $timeout = $opts->{Timeout} // 30;
+    my $timeout = $opts->{Timeout} // TIMEOUT;
 
     croak "Timeout is invalid: $timeout" if $timeout !~ /^[0-9]+$/;
 

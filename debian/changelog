@@ -1,3 +1,22 @@
+libnet-as2-perl (1.001-1) stable; urgency=low
+
+  * Message-Id
+    - Validate message id using Email::Address::addr_spec
+      Allow for angle bracket quotes
+
+  * File-extensions
+    - Accept any file extension for key and certificate files
+
+  * Distribution
+    - Use $VERSION instead of package MODULE VERSION
+    - Pass harsher Perl Critic tests
+
+  * AS2-Version
+    - Update documentation to specify AS2 Version 1.0.
+      Version 1.1 compression is not implemented
+
+ -- Andrew Maguire <ajm@cpan.org>  Fri, 8 Feb 2019 15:10:00 +1300
+
 libnet-as2-perl (1.0-1) stable; urgency=low
 
   * HTTP::Headers
