@@ -771,7 +771,7 @@ sub send ## no critic (ProhibitBuiltinHomonyms)
     my $message_id = $self->get_message_id($opts{MessageId}, generate => 1);
 
     $opts{Encoding} = 'base64';
-    $opts{Disposition} //= 'attachment';
+    $opts{Disposition} //= 'attachment; filename="payload"';
     $opts{Subject} //= 'AS2 Message';
     $opts{'X-Mailer'} = undef;
 

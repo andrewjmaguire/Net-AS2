@@ -1,3 +1,10 @@
+libnet-as2-perl (1.01-1) stable; urgency=low
+
+  * Content-Disposition
+    - Set default filename, so that Oracle B2B accepts the request
+
+ -- Andrew Maguire <ajm@cpan.org>  Thu, 21 Feb 2019 11:21:50 +1300
+
 libnet-as2-perl (1.001-1) stable; urgency=low
 
   * Message-Id
