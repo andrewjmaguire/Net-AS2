@@ -29,6 +29,7 @@ RFC 3798.
 =cut
 
 use Carp;
+use Email::Address;
 use MIME::Parser;
 use MIME::Entity;
 use Scalar::Util qw(blessed);
@@ -268,8 +269,15 @@ sub _parse_mdn
         }
     }
 
-    $self->{original_message_id} = $disposition{'original-message-id'}
-        if defined $disposition{'original-message-id'};
+    if (my $id = $disposition{'original-message-id'}) {
+        if ($id =~ /<?($Email::Address::addr_spec)>?/) {
+            $self->{original_message_id} = $1;
+        }
+        else {
+            $self->{status_text} = "Original-Message-Id does not conform to RFC 2822: '$id'";
+            $self->{error} = 1;
+        }
+    }
 
     if (defined $disposition{'received-content-mic'})
     {
@@ -309,7 +317,7 @@ sub _parse_mdn
         }
     } else {
         $status_text = "disposition not found";
-            $self->{unparsable} = 1;
+        $self->{unparsable} = 1;
     }
     $self->{status_text} = $status_text;
 

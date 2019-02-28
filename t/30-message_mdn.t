@@ -21,10 +21,11 @@ my $msg_failure = Net::AS2::Message->create_failure_message($original_message_id
 
 sub check_pair {
     my ($msg, $mdn) = @_;
+    is($msg->message_id, $original_message_id);
     is(defined $mdn->async_url ? 1 : 0, $msg->is_mdn_async ? 1 : 0);
     is($mdn->async_url, $msg->async_url);
     is($mdn->should_sign, $msg->should_mdn_sign);
-    is($mdn->original_message_id, $msg->message_id);
+    is($mdn->original_message_id, $original_message_id);
     if (defined $msg->mic) {
         is($mdn->{mic_hash}, $msg->mic);
         is($mdn->{mic_alg},  $msg->mic_alg);

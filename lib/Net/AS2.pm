@@ -480,11 +480,19 @@ sub decode_message
     croak 'content is undefined'
       unless defined $content;
 
-    my $message_id = $headers->header('Message-Id');
-    my $async_url  = $headers->header('Receipt-Delivery-Option');
-    my @new_prefix = ($message_id, $async_url, 0);
+    my @new_prefix = (
+        scalar($headers->header('Message-Id')),
+        scalar($headers->header('Receipt-Delivery-Option')),
+        0
+    );
 
-    if (defined $async_url && $async_url !~ m{^https?://}) {
+    # Validate Message-Id format
+    eval {
+        $new_prefix[0] = $self->get_message_id($new_prefix[0]);
+    } or do {
+        return Net::AS2::Message->create_error_message(@new_prefix, 'unexpected-processing-error', "Malformed AS2 Message, $@.");
+    };
+    if (defined($new_prefix[1]) && $new_prefix[1] !~ m{^https?://}) {
         $new_prefix[1] = undef;
         return Net::AS2::Message->create_failure_message(@new_prefix, 'Async transport other than http/https is not supported');
     }
@@ -503,7 +511,7 @@ sub decode_message
 
     unless (
         defined $content_type &&
-        defined $message_id   &&
+        defined $new_prefix[0] &&
         defined $version &&
         defined $from &&
         defined $to)
@@ -822,7 +830,7 @@ sub _send_preprocess
 
     push @header, (
         defined $target_url ? ('Recipient-Address' => $target_url) : (),
-        'Message-Id'  => $message_id,
+        'Message-Id'  => "<$message_id>",
         'AS2-Version' => '1.0',
         'AS2-From'    => $self->encode_as2_id($self->{MyId}),
         'AS2-To'      => $self->encode_as2_id($self->{PartnerId}),
@@ -1020,7 +1028,7 @@ sub _base64_digest {
     while (length($digest) % 4) {
         $digest .= '=';
     }
-			
+
     return $digest;
 }
 
