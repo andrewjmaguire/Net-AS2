@@ -41,6 +41,7 @@ my $test_async = sub {
     ok($msg->is_mdn_async, 'MDN is async');
     is($msg->async_url, 'http://example.com/dummy/a_1/mdn');
     is(decode('utf8', $msg->content), $data, 'Content matches');
+    is($msg->filename, 'payload', 'default Content-Disposition filename');
     is($mic1, $msg->mic, 'MIC matches');
 
     $a2->send_async_mdn(Net::AS2::MDN->create_success($msg));

@@ -41,8 +41,11 @@ my $test_async = sub {
 
     my $data = "测试\nThis is a test\r\n\x01\x02\x00";
     my $message_id = sprintf('%s@localhost', rand());
+    my $filename   = 'test.txt';
 
-    my ($mdn_temp, $mic1, $mic1_alg) = $a1->send($data, 'Type' => 'text/plain', 'MessageId' => "<$message_id>");
+    my ($mdn_temp, $mic1, $mic1_alg) = $a1->send(
+        $data, 'Type' => 'text/plain', 'MessageId' => "<$message_id>", Filename => $filename
+    );
     ok($mdn_temp->is_unparsable, 'ASYNC data unparsable');
     my $req = $Mock::LWP::UserAgent::last_request;
 
@@ -50,8 +53,9 @@ my $test_async = sub {
 
     ok($msg->is_success, 'Message received successfully');
     ok($msg->is_mdn_async, 'MDN is async');
-    is($msg->async_url, 'http://example.com/dummy/a_1/mdn');
+    is($msg->async_url, $a1->{MdnAsyncUrl});
     is(decode('utf8', $msg->content), $data, 'Content matches');
+    is($msg->filename, $filename, 'Content-Disposition filename');
     is($mic1, $msg->mic, 'MIC matches');
 
     $a2->send_async_mdn(Net::AS2::MDN->create_success($msg));

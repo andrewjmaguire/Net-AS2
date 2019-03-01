@@ -587,7 +587,8 @@ sub decode_message
         unless defined $bh;
 
     $content = $bh->as_string;
-    return Net::AS2::Message->new(@new_prefix, $mic, $content, $self->{Signature});
+    my $filename = $entity->head->mime_attr('content-disposition.filename');
+    return Net::AS2::Message->new(@new_prefix, $mic, $content, $self->{Signature}, $filename);
 }
 
 =item $mdn = $as2->decode_mdn($headers, $content)
@@ -753,6 +754,11 @@ Message id of this request should be supplied, or a random one would be generate
 
 Content type of the message should be supplied.
 
+=item Filename
+
+I<Optional.>
+Sets the Content-Disposition filename. Default is "payload".
+
 =back
 
 In case of HTTP failure, the MDN object will be marked with C<$mdn-E<gt>is_error>.
@@ -778,8 +784,9 @@ sub send ## no critic (ProhibitBuiltinHomonyms)
 
     my $message_id = $self->get_message_id($opts{MessageId}, generate => 1);
 
+    my $filename = delete $opts{Filename} // 'payload';
     $opts{Encoding} = 'base64';
-    $opts{Disposition} //= 'attachment; filename="payload"';
+    $opts{Disposition} //= qq{attachment; filename="$filename"};
     $opts{Subject} //= 'AS2 Message';
     $opts{'X-Mailer'} = undef;
 

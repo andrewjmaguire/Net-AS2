@@ -77,7 +77,7 @@ subtest 'Async MDN' => sub {
         my $req = shift;
         my $mdn = $a1->decode_mdn($req->headers, $req->content);
         ok($mdn->match_mic('mic', 'sha1'));
-        ok($mdn->is_success, 'Message received with error');
+        ok($mdn->is_success, 'Message received with success');
         is($mdn->original_message_id, $message_id);
 
         my $r = HTTP::Response->new(200, 'OK', [], '');
@@ -92,7 +92,7 @@ subtest 'Async MDN Unparsable' => sub {
     my $a1 = Net::AS2->new(%config_1);
 
     my $mdn = $a1->decode_mdn(HTTP::Headers->new(), '');
-    ok($mdn->is_unparsable, 'Message received with error');
+    ok($mdn->is_unparsable, 'Message received with unparsable error');
 };
 
 
