@@ -16,7 +16,7 @@ severity = 1
 [Subroutines::ProhibitExcessComplexity]
 max_mccabe = 30
 [Subroutines::ProhibitManyArgs]
-max_arguments = 7
+max_arguments = 8
 [ValuesAndExpressions::ProhibitConstantPragma]
 severity = 1
 [Variables::ProhibitPackageVars]
