@@ -351,6 +351,10 @@ sub match_mic
 
     return 0 unless $self->is_success;
 
+    if (! $self->{mic_alg} && ! $alg) {
+        return 1;
+    }
+
     if (
         defined $hash && defined $alg &&
         defined $self->{mic_hash} &&
