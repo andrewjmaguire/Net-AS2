@@ -65,7 +65,7 @@ sub options {
 
     croak "Timeout is invalid: $timeout" if $timeout !~ /^[0-9]+$/;
 
-    my $agent = $opts->{UserAgent} // "Perl AS2/$Net::AS2::VERSION";
+    my $agent = $opts->{UserAgent} // "Perl AS2/" . ($Net::AS2::VERSION // 'VERSION');
 
     return (
         agent   => $agent,
